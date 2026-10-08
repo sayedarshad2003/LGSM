@@ -1,0 +1,200 @@
+@model LGMS.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Welcome to LGMS";
+}
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
+            <!-- Setup / Welcome Banner -->
+            <div class="card p-4 mb-4 border-0 shadow-sm bg-card">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-primary text-uppercase px-2 py-1 fs-xs">Local First</span>
+                            <span class="text-muted fs-sm">ASP.NET Core MVC .NET 9</span>
+                        </div>
+                        <h2 class="fw-bold mb-1">LGMS — Local Git Management System</h2>
+                        <p class="text-muted mb-0">Select your Git workspace folder to automatically discover and manage local repositories.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary d-flex align-items-center gap-2" onclick="promptWorkspaceFolder()">
+                            <i class="bi bi-folder2-open"></i> Change Folder
+                        </button>
+                        <button class="btn btn-primary d-flex align-items-center gap-2" id="btn-scan" onclick="triggerScan()">
+                            <i class="bi bi-search"></i> Scan Repositories
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 rounded workspace-pill bg-subtle border">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+                        <div>
+                            <span class="text-muted fs-xs text-uppercase fw-semibold d-block">Current Working Workspace</span>
+                            <span class="font-monospace fw-medium text-break" id="current-workspace-path">@Model.Settings.WorkingFolder</span>
+                        </div>
+                        <div>
+                            <span class="badge bg-secondary-subtle text-secondary border px-3 py-2" id="repos-count-badge">
+                                <i class="bi bi-git me-1 text-primary"></i> @Model.TotalRepositoriesFound repositories discovered
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Cards Grid -->
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <div class="card h-100 p-3 border-0 shadow-sm bg-card">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="icon-box bg-primary-subtle text-primary rounded p-2">
+                                <i class="bi bi-folder-check fs-4"></i>
+                            </div>
+                            <h5 class="fw-semibold mb-0">Repositories</h5>
+                        </div>
+                        <p class="text-muted fs-sm mb-3">Browse all detected Git repositories, branches, and uncommitted modifications.</p>
+                        <a href="/repositories" class="btn btn-sm btn-outline-primary mt-auto d-flex align-items-center justify-content-between">
+                            <span>View All Repositories</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="card h-100 p-3 border-0 shadow-sm bg-card">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="icon-box bg-success-subtle text-success rounded p-2">
+                                <i class="bi bi-lightning-charge fs-4"></i>
+                            </div>
+                            <h5 class="fw-semibold mb-0">Fast Scan</h5>
+                        </div>
+                        <p class="text-muted fs-sm mb-3">Recursively discover submodules, worktrees, and project folders without external tools.</p>
+                        <button onclick="triggerScan()" class="btn btn-sm btn-outline-success mt-auto d-flex align-items-center justify-content-between">
+                            <span>Re-scan Directory</span>
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="card h-100 p-3 border-0 shadow-sm bg-card">
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <div class="icon-box bg-info-subtle text-info rounded p-2">
+                                <i class="bi bi-sliders fs-4"></i>
+                            </div>
+                            <h5 class="fw-semibold mb-0">Settings & Git</h5>
+                        </div>
+                        <p class="text-muted fs-sm mb-3">Configure Git executable path, dark/light themes, and startup options.</p>
+                        <a href="/settings" class="btn btn-sm btn-outline-secondary mt-auto d-flex align-items-center justify-content-between">
+                            <span>Open Settings</span>
+                            <i class="bi bi-gear"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Repositories Section -->
+            <div class="card border-0 shadow-sm bg-card">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3">
+                    <h5 class="fw-semibold mb-0">
+                        <i class="bi bi-clock-history me-2 text-muted"></i> Discovered Repositories
+                    </h5>
+                    <a href="/repositories" class="text-decoration-none fs-sm fw-medium">View all (@Model.TotalRepositoriesFound) &rarr;</a>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentRepositories.Any())
+                    {
+                        <div class="list-group list-group-flush" id="recent-repos-list">
+                            @foreach (var repo in Model.RecentRepositories)
+                            {
+                                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="list-group-item list-group-item-action p-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="fw-bold fs-6 text-primary">@repo.Name</span>
+                                            <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @repo.CurrentBranch</span>
+                                            @if (!repo.IsClean)
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">@repo.ChangesCount changes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">clean</span>
+                                            }
+                                        </div>
+                                        <div class="text-muted fs-xs font-monospace">@repo.Path</div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(repo.LastCommitMessage))
+                                        {
+                                            <span class="text-muted fs-xs d-none d-lg-inline text-truncate" style="max-width: 250px;">
+                                                <i class="bi bi-commit me-1"></i> @repo.LastCommitMessage
+                                            </span>
+                                        }
+                                        <button class="btn btn-sm btn-outline-primary ms-md-2">
+                                            Open <i class="bi bi-chevron-right ms-1"></i>
+                                        </button>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-folder-x fs-1 mb-2 d-block"></i>
+                            <h6 class="fw-semibold">No Git repositories discovered</h6>
+                            <p class="fs-sm mb-3">No directory containing a <code>.git</code> repository was found inside the selected folder.</p>
+                            <button class="btn btn-sm btn-primary" onclick="promptWorkspaceFolder()">Select Another Workspace</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    async function promptWorkspaceFolder() {
+        const current = document.getElementById('current-workspace-path').innerText.trim();
+        const next = prompt("Enter Git Workspace Folder Path:", current);
+        if (next && next !== current) {
+            LGMS.showLoading("Updating Workspace", "Setting workspace path and scanning...");
+            try {
+                const res = await fetch('/HomeController/SetWorkspace', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ workingFolder: next })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    LGMS.toast("Workspace updated", "success");
+                    location.href = '/?workspace=' + encodeURIComponent(next);
+                } else {
+                    LGMS.toast(data.message || "Failed to update workspace", "error");
+                }
+            } catch (e) {
+                LGMS.toast("Error setting workspace", "error");
+            } finally {
+                LGMS.hideLoading();
+            }
+        }
+    }
+
+    async function triggerScan() {
+        LGMS.showLoading("Scanning Repositories", "Enumerating local directories safely...");
+        try {
+            const res = await fetch('/api/repositories');
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ Scanned successfully. Found ${data.total} repositories.`, "success");
+                setTimeout(() => location.reload(), 600);
+            } else {
+                LGMS.toast(data.message || "Scanning failed", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Scan request error", "error");
+        }
+    }
+</script>
+}

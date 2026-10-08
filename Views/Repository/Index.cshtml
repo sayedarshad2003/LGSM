@@ -1,0 +1,172 @@
+@model LGMS.ViewModels.RepositoryViewModel
+@{
+    ViewData["Title"] = "Repositories";
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Repositories</h3>
+            <p class="text-muted fs-sm mb-0">Discovered Git repositories in <code class="text-primary">@Model.WorkingFolder</code></p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-2" onclick="location.reload();">
+                <i class="bi bi-arrow-clockwise"></i> <span>Refresh</span>
+            </button>
+            <a href="/" class="btn btn-outline-primary d-flex align-items-center gap-2">
+                <i class="bi bi-folder-plus"></i> <span>Change Workspace</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Sort Bar -->
+    <div class="card p-3 mb-4 border-0 shadow-sm bg-card">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-12 col-md-6 col-lg-7">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-end-0 text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search repositories by name or path..." value="@Model.SearchQuery" id="repo-search-input" />
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-3">
+                <select name="sort" class="form-select" onchange="this.form.submit()">
+                    <option value="name" selected="@(Model.SortBy == "name")">Sort by Name</option>
+                    <option value="changes" selected="@(Model.SortBy == "changes")">Sort by Changes (Dirty first)</option>
+                    <option value="branch" selected="@(Model.SortBy == "branch")">Sort by Branch</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2 d-flex">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Repositories Grid / List -->
+    @if (Model.Repositories.Any())
+    {
+        <div class="row g-3" id="repositories-grid">
+            @foreach (var repo in Model.Repositories)
+            {
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100 p-3 border-0 shadow-sm bg-card repo-card position-relative transition">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-decoration-none">
+                                    <h5 class="fw-bold text-primary mb-1 d-flex align-items-center gap-2">
+                                        <i class="bi bi-folder2 text-secondary"></i>
+                                        @repo.Name
+                                    </h5>
+                                </a>
+                                <div class="text-muted fs-xs font-monospace text-truncate" style="max-width: 480px;">@repo.Path</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @repo.CurrentBranch</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 my-2 fs-sm">
+                            @if (!repo.IsClean)
+                            {
+                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                    <i class="bi bi-pencil-fill me-1"></i> @repo.ChangesCount changes
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-check2-circle me-1"></i> clean
+                                </span>
+                            }
+
+                            @if (repo.AheadCount > 0)
+                            {
+                                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                    <i class="bi bi-arrow-up me-1"></i> @repo.AheadCount ahead
+                                </span>
+                            }
+                            @if (repo.BehindCount > 0)
+                            {
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                    <i class="bi bi-arrow-down me-1"></i> @repo.BehindCount behind
+                                </span>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(repo.LastCommitMessage))
+                        {
+                            <div class="p-2 rounded bg-subtle fs-xs text-muted font-monospace text-truncate mb-3">
+                                <span class="text-secondary fw-semibold">@repo.LastCommitHash</span> — @repo.LastCommitMessage
+                            </div>
+                        }
+
+                        <div class="d-flex align-items-center justify-content-between mt-auto pt-2 border-top">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-icon text-muted" title="Open Directory in File Explorer" onclick="openRepoFolder('@repo.Path')">
+                                    <i class="bi bi-folder2-open"></i>
+                                </button>
+                                <button class="btn btn-sm btn-icon text-muted" title="Open in VS Code" onclick="openRepoCode('@repo.Path')">
+                                    <i class="bi bi-terminal-split"></i>
+                                </button>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="/repository/@repo.Id/changes?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-sm btn-outline-secondary">
+                                    Changes
+                                </a>
+                                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-sm btn-primary">
+                                    Manage &rarr;
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="card p-5 border-0 shadow-sm text-center bg-card">
+            <i class="bi bi-search fs-1 text-muted mb-2"></i>
+            <h5 class="fw-semibold">No repositories found matching criteria</h5>
+            <p class="text-muted fs-sm mb-3">Try clearing search filters or scanning another directory.</p>
+            <a href="/repositories" class="btn btn-sm btn-outline-primary mx-auto">Clear Filters</a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+    async function openRepoFolder(path) {
+        try {
+            await fetch('/repository/open-folder', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path })
+            });
+            LGMS.toast("Opening folder in system file manager", "info");
+        } catch (e) {
+            LGMS.toast("Unable to open folder", "error");
+        }
+    }
+
+    async function openRepoCode(path) {
+        try {
+            const res = await fetch('/repository/open-vscode', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path })
+            });
+            const data = await res.json();
+            if (data.success) {
+                LGMS.toast("Launched Visual Studio Code", "success");
+            } else {
+                LGMS.toast("VS Code CLI not detected or failed", "error");
+            }
+        } catch (e) {
+            LGMS.toast("Failed to launch VS Code", "error");
+        }
+    }
+</script>
+}

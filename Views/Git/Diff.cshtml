@@ -1,0 +1,107 @@
+@model LGMS.ViewModels.ChangesViewModel
+@{
+    ViewData["Title"] = $"{Model.Repository.Name} — Diff";
+    var repo = Model.Repository;
+    ViewBag.Repository = repo;
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/repository/@repo.Id/changes?path=@Uri.EscapeDataString(repo.Path)" class="text-muted text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Changes
+                </a>
+                <span class="text-muted">/</span>
+                <span class="badge @(Model.IsDiffStaged ? "bg-success" : "bg-warning text-dark")">
+                    @(Model.IsDiffStaged ? "Staged Diff" : "Unstaged Diff")
+                </span>
+            </div>
+            <h3 class="fw-bold mb-0">@(string.IsNullOrEmpty(Model.SelectedFilePath) ? "Working Tree Diff" : Model.SelectedFilePath)</h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary active" id="btn-diff-mode-unified" onclick="switchMode('unified')">Unified</button>
+                <button class="btn btn-outline-secondary" id="btn-diff-mode-side" onclick="switchMode('side')">Side-by-Side</button>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" onclick="location.reload();">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm bg-card">
+        <div class="card-body p-0">
+            <div id="full-diff-viewer" class="p-4 font-monospace fs-xs" style="min-height: 500px; overflow-x: auto;">
+                <!-- Populated via script or server content -->
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const diffText = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DiffContent ?? ""));
+    let currentMode = 'unified';
+
+    function switchMode(m) {
+        currentMode = m;
+        document.getElementById('btn-diff-mode-unified').classList.toggle('active', m === 'unified');
+        document.getElementById('btn-diff-mode-side').classList.toggle('active', m === 'side');
+        render();
+    }
+
+    function render() {
+        const target = document.getElementById('full-diff-viewer');
+        if (!diffText || diffText.trim().length === 0) {
+            target.innerHTML = '<div class="p-5 text-center text-muted">No difference output found between tree and index.</div>';
+            return;
+        }
+
+        const lines = diffText.split('\n');
+        if (currentMode === 'unified') {
+            let html = '<div class="diff-container-unified">';
+            lines.forEach(l => {
+                let cls = 'diff-line';
+                let sign = ' ';
+                if (l.startsWith('+') && !l.startsWith('+++')) {
+                    cls += ' diff-added';
+                    sign = '+';
+                } else if (l.startsWith('-') && !l.startsWith('---')) {
+                    cls += ' diff-removed';
+                    sign = '-';
+                } else if (l.startsWith('@@')) {
+                    cls += ' diff-hunk';
+                }
+                html += `<div class="${cls}"><span class="diff-sign">${sign}</span>${escapeHtml(l)}</div>`;
+            });
+            html += '</div>';
+            target.innerHTML = html;
+        } else {
+            let html = '<table class="table table-sm diff-table font-monospace fs-xs mb-0"><tbody>';
+            lines.forEach(l => {
+                let leftCls = '', rightCls = '', leftText = '', rightText = '';
+                if (l.startsWith('-') && !l.startsWith('---')) {
+                    leftCls = 'bg-danger-subtle text-danger';
+                    leftText = escapeHtml(l);
+                } else if (l.startsWith('+') && !l.startsWith('+++')) {
+                    rightCls = 'bg-success-subtle text-success';
+                    rightText = escapeHtml(l);
+                } else {
+                    leftText = escapeHtml(l);
+                    rightText = escapeHtml(l);
+                }
+                html += `<tr><td class="diff-side-col border-end ${leftCls}">${leftText}</td><td class="diff-side-col ${rightCls}">${rightText}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            target.innerHTML = html;
+        }
+    }
+
+    function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    render();
+</script>
+}

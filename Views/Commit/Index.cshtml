@@ -1,0 +1,163 @@
+@model List<LGMS.Models.GitCommit>
+@{
+    var repo = (LGMS.Models.Repository)ViewBag.Repository;
+    ViewData["Title"] = $"{repo.Name} — Commits";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-muted text-decoration-none">@repo.Name</a>
+                <span class="text-muted">/</span>
+                <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @repo.CurrentBranch</span>
+            </div>
+            <h3 class="fw-bold mb-0">Commit History</h3>
+        </div>
+        <div>
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="location.reload();">
+                <i class="bi bi-arrow-clockwise"></i> <span>Refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Commit List Column -->
+        <div class="col-12 col-lg-7">
+            <div class="card border-0 shadow-sm bg-card">
+                <div class="card-header bg-transparent border-bottom py-3">
+                    <h5 class="fw-semibold mb-0">
+                        <i class="bi bi-clock-history me-2 text-primary"></i> Recent Commits (@Model.Count)
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Any())
+                    {
+                        <div class="list-group list-group-flush" id="commit-list-group">
+                            @foreach (var commit in Model)
+                            {
+                                <button type="button" class="list-group-item list-group-item-action p-3 text-start commit-item-btn" onclick="inspectCommit('@commit.Hash')">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-secondary-subtle text-secondary font-monospace">@commit.ShortHash</span>
+                                        <span class="text-muted fs-xs">@commit.RelativeTime</span>
+                                    </div>
+                                    <div class="fw-semibold text-primary mb-1">@commit.Subject</div>
+                                    <div class="text-muted fs-xs d-flex align-items-center gap-2">
+                                        <span><i class="bi bi-person me-1"></i> @commit.AuthorName</span>
+                                        <span>&bull;</span>
+                                        <span>@commit.Date.ToString("yyyy-MM-dd HH:mm")</span>
+                                    </div>
+                                </button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-clock fs-1 mb-2 d-block text-secondary"></i>
+                            No commits recorded in this repository yet.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Commit Details Inspector Column -->
+        <div class="col-12 col-lg-5">
+            <div class="card border-0 shadow-sm bg-card sticky-top" style="top: 80px;" id="commit-inspector-card">
+                <div class="card-header bg-transparent border-bottom py-3">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-info-circle me-2 text-muted"></i> Commit Details</h5>
+                </div>
+                <div class="card-body p-4" id="inspector-body">
+                    <div class="text-center text-muted p-5">
+                        <i class="bi bi-cursor text-muted fs-2 mb-2 d-block"></i>
+                        Click on any commit on the left to inspect its details and full patch diff.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const repoPath = '@Html.Raw(repo.Path)';
+
+    async function inspectCommit(hash) {
+        const body = document.getElementById('inspector-body');
+        body.innerHTML = '<div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Loading commit data...</div>';
+
+        try {
+            const res = await fetch(`/api/git/commit/details?path=${encodeURIComponent(repoPath)}&hash=${encodeURIComponent(hash)}`);
+            const data = await res.json();
+            if (!data.success) {
+                body.innerHTML = '<div class="text-danger p-3">Failed to inspect commit.</div>';
+                return;
+            }
+
+            let filesHtml = '';
+            if (data.changedFiles && data.changedFiles.length) {
+                filesHtml = `<div class="mb-3">
+                    <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Changed Files (${data.filesCount})</div>
+                    <ul class="list-group list-group-flush border rounded font-monospace fs-xs" style="max-height: 150px; overflow-y:auto;">
+                        ${data.changedFiles.map(f => `<li class="list-group-item py-1 px-2">${f}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+
+            body.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="text-muted fs-xs text-uppercase fw-semibold d-block">Commit Hash</span>
+                        <code class="font-monospace fs-sm text-break">${data.hash}</code>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText('${data.hash}'); LGMS.toast('Hash copied', 'info');">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                ${filesHtml}
+                <div class="mb-3">
+                    <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Commit Diff Patch</div>
+                    <div class="bg-subtle p-2 rounded font-monospace fs-xs" style="max-height: 300px; overflow: auto; white-space: pre-wrap;">${escapeHtml(data.diff || "No diff")}</div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="branchFromCommit('${data.hash}')">
+                        <i class="bi bi-bezier2 me-1"></i> Create Branch from this Commit
+                    </button>
+                </div>
+            `;
+        } catch (e) {
+            body.innerHTML = '<div class="text-danger p-3">Error fetching commit details.</div>';
+        }
+    }
+
+    function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    async function branchFromCommit(hash) {
+        const branchName = prompt("Enter new branch name:", "branch-" + hash.substring(0, 7));
+        if (branchName) {
+            LGMS.showLoading(`Creating branch ${branchName}...`, "git checkout -b");
+            try {
+                const res = await fetch('/api/git/branch/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: repoPath, branch: branchName })
+                });
+                const data = await res.json();
+                LGMS.hideLoading();
+                if (data.success) {
+                    LGMS.toast(`✓ Branch ${branchName} created`, "success");
+                    location.href = `/repository/@repo.Id/branches?path=${encodeURIComponent(repoPath)}`;
+                } else {
+                    LGMS.toast(data.error || "Branch creation failed", "error");
+                }
+            } catch (e) {
+                LGMS.hideLoading();
+                LGMS.toast("Failed to create branch", "error");
+            }
+        }
+    }
+</script>
+}

@@ -1,0 +1,453 @@
+@model LGMS.ViewModels.ChangesViewModel
+@{
+    ViewData["Title"] = $"{Model.Repository.Name} — Changes";
+    var repo = Model.Repository;
+    var status = Model.Status;
+    ViewBag.Repository = repo;
+}
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-decoration-none text-muted">@repo.Name</a>
+                <span class="text-muted">/</span>
+                <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @status.CurrentBranch</span>
+            </div>
+            <h3 class="fw-bold mb-0">Working Tree & Changes</h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="location.reload();">
+                <i class="bi bi-arrow-clockwise"></i> <span>Refresh</span>
+            </button>
+            <button class="btn btn-primary d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#commitModal">
+                <i class="bi bi-check2-square"></i> <span>Commit (@status.StagedChanges.Count)</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Changes Column -->
+        <div class="col-12 col-lg-7">
+            <!-- Staged Section -->
+            <div class="card border-0 shadow-sm bg-card mb-4">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success">Staged Changes</span>
+                        <span class="badge bg-secondary-subtle text-secondary" id="staged-count-badge">@status.StagedChanges.Count files</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-warning" onclick="unstageSelected()">Unstage Selected</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="unstageAll()">Unstage All</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (status.StagedChanges.Any())
+                    {
+                        <div class="list-group list-group-flush font-monospace fs-sm">
+                            @foreach (var file in status.StagedChanges)
+                            {
+                                <div class="list-group-item d-flex align-items-center justify-content-between p-2 px-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="checkbox" class="form-check-input staged-checkbox" value="@file.Path" />
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">@file.StatusCode</span>
+                                        <span class="text-break">@file.Path</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <button class="btn btn-sm btn-link text-decoration-none text-secondary" onclick="previewDiff('@file.Path', true)">
+                                            Diff
+                                        </button>
+                                        <button class="btn btn-sm btn-link text-decoration-none text-warning" onclick="unstageFiles(['@file.Path'])">
+                                            Unstage
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted fs-sm">
+                            <i class="bi bi-check2-all text-muted fs-3 mb-1 d-block"></i>
+                            No staged changes ready for commit.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Unstaged / Untracked Section -->
+            <div class="card border-0 shadow-sm bg-card">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark">Unstaged Changes</span>
+                        <span class="badge bg-secondary-subtle text-secondary">@(status.UnstagedChanges.Count + status.UntrackedFiles.Count) files</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-danger" onclick="confirmDiscardSelected()">Discard</button>
+                        <button class="btn btn-sm btn-outline-success" onclick="stageSelected()">Stage Selected</button>
+                        <button class="btn btn-sm btn-success" onclick="stageAll()">Stage All</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @{
+                        var unstagedCombined = status.UnstagedChanges.Concat(status.UntrackedFiles).ToList();
+                    }
+                    @if (unstagedCombined.Any())
+                    {
+                        <div class="list-group list-group-flush font-monospace fs-sm">
+                            @foreach (var file in unstagedCombined)
+                            {
+                                <div class="list-group-item d-flex align-items-center justify-content-between p-2 px-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input type="checkbox" class="form-check-input unstaged-checkbox" value="@file.Path" />
+                                        @if (file.Status == LGMS.Models.ChangeStatus.Untracked)
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border">??</span>
+                                        }
+                                        else if (file.Status == LGMS.Models.ChangeStatus.Deleted)
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border">D</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning border">@file.StatusCode</span>
+                                        }
+                                        <span class="text-break">@file.Path</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <button class="btn btn-sm btn-link text-decoration-none text-secondary" onclick="previewDiff('@file.Path', false)">
+                                            Diff
+                                        </button>
+                                        <button class="btn btn-sm btn-link text-decoration-none text-success" onclick="stageFiles(['@file.Path'])">
+                                            Stage
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-4 text-center text-muted fs-sm">
+                            <i class="bi bi-shield-check text-success fs-3 mb-1 d-block"></i>
+                            No unstaged modifications in working tree.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Diff Preview Column -->
+        <div class="col-12 col-lg-5">
+            <div class="card border-0 shadow-sm bg-card sticky-top" style="top: 80px;">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3">
+                    <h6 class="fw-semibold mb-0" id="diff-preview-header">
+                        <i class="bi bi-file-code me-2 text-muted"></i> File Diff Preview
+                    </h6>
+                    <div class="btn-group btn-group-sm" id="diff-view-mode-group">
+                        <button class="btn btn-outline-secondary active" id="btn-diff-unified" onclick="setDiffMode('unified')">Unified</button>
+                        <button class="btn btn-outline-secondary" id="btn-diff-side" onclick="setDiffMode('side')">Side-by-Side</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="diff-container" class="diff-viewer p-3 font-monospace fs-xs" style="min-height: 400px; max-height: 650px; overflow: auto;">
+                        <div class="text-center text-muted p-5">
+                            <i class="bi bi-eye text-muted fs-2 mb-2 d-block"></i>
+                            Select a file to inspect staged or unstaged diff.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reusable Commit Modal -->
+<div class="modal fade" id="commitModal" tabindex="-1" aria-labelledby="commitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg bg-card">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="commitModalLabel">
+                    <i class="bi bi-git me-2 text-primary"></i> Commit Staged Changes
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold fs-sm">Staged Changes (@status.StagedChanges.Count)</label>
+                    <div class="border rounded p-2 bg-subtle" style="max-height: 180px; overflow-y: auto;">
+                        @if (status.StagedChanges.Any())
+                        {
+                            <ul class="list-unstyled mb-0 font-monospace fs-xs">
+                                @foreach (var file in status.StagedChanges)
+                                {
+                                    <li class="py-1 d-flex align-items-center gap-2">
+                                        <i class="bi bi-check-square-fill text-success"></i>
+                                        <span class="badge bg-success-subtle text-success">@file.StatusCode</span>
+                                        <span>@file.Path</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="text-danger fs-sm p-2">
+                                <i class="bi bi-exclamation-triangle me-1"></i> No changes staged. Please stage files before committing.
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="commitMessageInput" class="form-label fw-semibold fs-sm">Commit Message <span class="text-danger">*</span></label>
+                    <textarea class="form-control font-monospace fs-sm" id="commitMessageInput" rows="4" placeholder="feat: enhance ASP.NET application with bulk import&#10;&#10;Explain what problem this commit solves..."></textarea>
+                    <div class="form-text fs-xs text-muted">First line should be concise conventional commit format (e.g. feat:, fix:, docs:)</div>
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-primary" id="btn-commit" onclick="submitCommit(false)" @(status.StagedChanges.Count == 0 ? "disabled" : "")>
+                    <i class="bi bi-check2"></i> Commit
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-commit-push" onclick="submitCommit(true)" @(status.StagedChanges.Count == 0 ? "disabled" : "")>
+                    <i class="bi bi-cloud-arrow-up"></i> Commit & Push
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const repoPath = '@Html.Raw(repo.Path)';
+    let currentRawDiff = '';
+    let currentDiffMode = 'unified';
+
+    async function previewDiff(filePath, isStaged) {
+        document.getElementById('diff-preview-header').innerHTML = `<i class="bi bi-file-code me-2"></i> ${filePath} (${isStaged ? 'Staged' : 'Unstaged'})`;
+        const container = document.getElementById('diff-container');
+        container.innerHTML = '<div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Loading diff...</div>';
+
+        try {
+            const res = await fetch('/api/git/diff', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, staged: isStaged, file: filePath })
+            });
+            const data = await res.json();
+            currentRawDiff = data.output || 'No diff output found.';
+            renderDiff();
+        } catch (e) {
+            container.innerHTML = '<div class="text-danger p-3">Failed to load diff</div>';
+        }
+    }
+
+    function setDiffMode(mode) {
+        currentDiffMode = mode;
+        document.getElementById('btn-diff-unified').classList.toggle('active', mode === 'unified');
+        document.getElementById('btn-diff-side').classList.toggle('active', mode === 'side');
+        renderDiff();
+    }
+
+    function renderDiff() {
+        const container = document.getElementById('diff-container');
+        if (!currentRawDiff) {
+            container.innerHTML = '<div class="p-3 text-muted">No differences.</div>';
+            return;
+        }
+
+        const lines = currentRawDiff.split('\n');
+        if (currentDiffMode === 'unified') {
+            let html = '<div class="diff-unified">';
+            lines.forEach(l => {
+                let cls = 'diff-line';
+                let sign = ' ';
+                if (l.startsWith('+') && !l.startsWith('+++')) {
+                    cls += ' diff-added';
+                    sign = '+';
+                } else if (l.startsWith('-') && !l.startsWith('---')) {
+                    cls += ' diff-removed';
+                    sign = '-';
+                } else if (l.startsWith('@@')) {
+                    cls += ' diff-hunk';
+                }
+                html += `<div class="${cls}"><span class="diff-sign">${sign}</span>${escapeHtml(l)}</div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        } else {
+            // Side-by-side view
+            let html = '<table class="table table-sm diff-table font-monospace fs-xs mb-0"><tbody>';
+            lines.forEach((l, idx) => {
+                let leftCls = '', rightCls = '', leftText = '', rightText = '';
+                if (l.startsWith('-') && !l.startsWith('---')) {
+                    leftCls = 'bg-danger-subtle text-danger';
+                    leftText = escapeHtml(l);
+                } else if (l.startsWith('+') && !l.startsWith('+++')) {
+                    rightCls = 'bg-success-subtle text-success';
+                    rightText = escapeHtml(l);
+                } else {
+                    leftText = escapeHtml(l);
+                    rightText = escapeHtml(l);
+                }
+                html += `<tr><td class="diff-side-col border-end ${leftCls}">${leftText}</td><td class="diff-side-col ${rightCls}">${rightText}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    async function stageFiles(files) {
+        LGMS.showLoading("Staging changes...", "git add");
+        try {
+            const res = await fetch('/api/git/stage', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, files })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast("✓ Changes staged", "success");
+                location.reload();
+            } else {
+                LGMS.toast(data.error || "Stage failed", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Stage error", "error");
+        }
+    }
+
+    function stageSelected() {
+        const checked = Array.from(document.querySelectorAll('.unstaged-checkbox:checked')).map(cb => cb.value);
+        if (checked.length === 0) {
+            LGMS.toast("No files selected to stage", "warning");
+            return;
+        }
+        stageFiles(checked);
+    }
+
+    function stageAll() {
+        stageFiles(['.']);
+    }
+
+    async function unstageFiles(files) {
+        LGMS.showLoading("Unstaging changes...", "git restore --staged");
+        try {
+            const res = await fetch('/api/git/unstage', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, files })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast("✓ Changes unstaged", "success");
+                location.reload();
+            } else {
+                LGMS.toast(data.error || "Unstage failed", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Unstage error", "error");
+        }
+    }
+
+    function unstageSelected() {
+        const checked = Array.from(document.querySelectorAll('.staged-checkbox:checked')).map(cb => cb.value);
+        if (checked.length === 0) {
+            LGMS.toast("No files selected to unstage", "warning");
+            return;
+        }
+        unstageFiles(checked);
+    }
+
+    function unstageAll() {
+        unstageFiles(['.']);
+    }
+
+    async function confirmDiscardSelected() {
+        const checked = Array.from(document.querySelectorAll('.unstaged-checkbox:checked')).map(cb => cb.value);
+        if (checked.length === 0) {
+            LGMS.toast("No files selected to discard", "warning");
+            return;
+        }
+
+        if (confirm(`DANGER: Are you sure you want to discard changes in ${checked.length} file(s)?\nThis will permanently revert modifications and delete untracked files.`)) {
+            LGMS.showLoading("Discarding changes...", "git restore / clean");
+            try {
+                const res = await fetch('/api/git/discard', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: repoPath, files: checked })
+                });
+                const data = await res.json();
+                LGMS.hideLoading();
+                if (data.success) {
+                    LGMS.toast("✓ Changes discarded", "info");
+                    location.reload();
+                } else {
+                    LGMS.toast(data.error || "Discard failed", "error");
+                }
+            } catch (e) {
+                LGMS.hideLoading();
+                LGMS.toast("Discard error", "error");
+            }
+        }
+    }
+
+    async function submitCommit(andPush) {
+        const msg = document.getElementById('commitMessageInput').value.trim();
+        if (!msg) {
+            LGMS.toast("Commit message is required", "error");
+            return;
+        }
+
+        LGMS.showLoading(andPush ? "Committing & Pushing..." : "Creating Commit...", "git commit");
+        try {
+            const res = await fetch('/api/git/commit', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, message: msg })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                LGMS.hideLoading();
+                LGMS.toast(data.error || "Commit failed", "error");
+                return;
+            }
+
+            LGMS.toast("✓ Commit created successfully", "success");
+
+            if (andPush) {
+                LGMS.showLoading("Pushing commit to remote...", "git push");
+                const pushRes = await fetch('/api/git/push', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: repoPath })
+                });
+                const pushData = await pushRes.json();
+                LGMS.hideLoading();
+                if (pushData.success) {
+                    LGMS.toast("✓ Push completed", "success");
+                } else {
+                    LGMS.toast("Push failed: " + pushData.error, "warning");
+                }
+            } else {
+                LGMS.hideLoading();
+            }
+
+            setTimeout(() => location.reload(), 600);
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Commit request error", "error");
+        }
+    }
+</script>
+}

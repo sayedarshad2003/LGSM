@@ -1,0 +1,37 @@
+/* Dark theme specific overrides */
+body {
+    background-color: #0f1115 !important;
+    color: #f3f4f6 !important;
+}
+
+.card {
+    background-color: #1b1f29 !important;
+    border-color: #2a2f3a !important;
+    color: #f3f4f6 !important;
+}
+
+.list-group-item {
+    background-color: #1b1f29 !important;
+    border-color: #2a2f3a !important;
+    color: #f3f4f6 !important;
+}
+
+.list-group-item-action:hover {
+    background-color: #242937 !important;
+}
+
+.form-control, .form-select {
+    background-color: #151821 !important;
+    border-color: #2a2f3a !important;
+    color: #f3f4f6 !important;
+}
+
+.modal-content {
+    background-color: #1b1f29 !important;
+    color: #f3f4f6 !important;
+    border-color: #2a2f3a !important;
+}
+
+.border {
+    border-color: #2a2f3a !important;
+}

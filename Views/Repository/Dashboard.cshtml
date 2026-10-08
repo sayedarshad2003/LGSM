@@ -1,0 +1,275 @@
+@model LGMS.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = $"{Model.Repository?.Name} — Dashboard";
+    var repo = Model.Repository!;
+    var status = Model.Status!;
+    ViewBag.Repository = repo;
+}
+
+<div class="container-fluid py-4">
+    <!-- Top Action Banner -->
+    <div class="card p-4 mb-4 border-0 shadow-sm bg-card">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Active Repository</span>
+                    <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @status.CurrentBranch</span>
+                    @if (!status.IsClean)
+                    {
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">@status.Changes.Count uncommitted changes</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Working tree clean</span>
+                    }
+                </div>
+                <h3 class="fw-bold mb-1">@repo.Name</h3>
+                <div class="text-muted fs-xs font-monospace">@repo.Path</div>
+            </div>
+
+            <!-- Quick Action Toolbar -->
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="gitFetch('@repo.Path')">
+                    <i class="bi bi-cloud-download"></i> <span>Fetch</span>
+                </button>
+                <button class="btn btn-outline-primary d-flex align-items-center gap-1" onclick="gitPull('@repo.Path')">
+                    <i class="bi bi-arrow-down-circle"></i> <span>Pull</span>
+                </button>
+                <button class="btn btn-outline-success d-flex align-items-center gap-1" onclick="gitPush('@repo.Path')">
+                    <i class="bi bi-arrow-up-circle"></i> <span>Push</span>
+                </button>
+                <a href="/repository/@repo.Id/changes?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-primary d-flex align-items-center gap-1">
+                    <i class="bi bi-check2-square"></i> <span>Commit Changes</span>
+                </a>
+                <button class="btn btn-icon btn-outline-secondary" onclick="location.reload();" title="Refresh Status">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card p-3 border-0 shadow-sm bg-card text-center">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Working Tree</span>
+                <h3 class="fw-bold my-1 @(status.Changes.Count > 0 ? "text-warning" : "text-success")">@status.Changes.Count</h3>
+                <span class="fs-xs text-muted">Total Changes</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card p-3 border-0 shadow-sm bg-card text-center">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Staged</span>
+                <h3 class="fw-bold my-1 text-primary">@status.StagedChanges.Count</h3>
+                <span class="fs-xs text-muted">Ready to Commit</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card p-3 border-0 shadow-sm bg-card text-center">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Unstaged</span>
+                <h3 class="fw-bold my-1 text-danger">@(status.UnstagedChanges.Count + status.UntrackedFiles.Count)</h3>
+                <span class="fs-xs text-muted">Modified / Untracked</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card p-3 border-0 shadow-sm bg-card text-center">
+                <span class="text-muted fs-xs text-uppercase fw-semibold">Sync Status</span>
+                <h3 class="fw-bold my-1 text-info">@status.Ahead <span class="fs-6 text-muted font-normal">/</span> @status.Behind</h3>
+                <span class="fs-xs text-muted">Ahead / Behind</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Working Tree and Last Commit Grid -->
+    <div class="row g-4">
+        <!-- Working Tree Preview -->
+        <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm bg-card h-100">
+                <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-3">
+                    <h5 class="fw-semibold mb-0">
+                        <i class="bi bi-file-earmark-diff me-2 text-muted"></i> Working Tree Files
+                    </h5>
+                    <a href="/repository/@repo.Id/changes?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-sm btn-outline-primary">
+                        Manage All Changes &rarr;
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    @if (status.Changes.Any())
+                    {
+                        <div class="list-group list-group-flush font-monospace fs-sm">
+                            @foreach (var change in status.Changes.Take(12))
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (change.IsStaged)
+                                        {
+                                            <span class="badge bg-success" title="Staged">@change.StatusCode</span>
+                                        }
+                                        else if (change.Status == LGMS.Models.ChangeStatus.Untracked)
+                                        {
+                                            <span class="badge bg-secondary" title="Untracked">??</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark" title="Unstaged">@change.StatusCode</span>
+                                        }
+                                        <span class="text-break">@change.Path</span>
+                                    </div>
+                                    <a href="/repository/@repo.Id/diff?path=@Uri.EscapeDataString(repo.Path)&file=@Uri.EscapeDataString(change.Path)&staged=@(change.IsStaged.ToString().ToLower())" class="btn btn-sm btn-outline-secondary">
+                                        Diff
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="p-5 text-center text-muted">
+                            <i class="bi bi-check-circle fs-1 text-success mb-2 d-block"></i>
+                            <h6 class="fw-semibold">Working Tree Clean</h6>
+                            <p class="fs-sm mb-0">No uncommitted staged or unstaged changes detected.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Commit & Repository Info Sidebar -->
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm bg-card mb-4">
+                <div class="card-header bg-transparent border-bottom py-3">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-git me-2 text-muted"></i> Latest Commit</h5>
+                </div>
+                <div class="card-body p-3">
+                    @if (!string.IsNullOrEmpty(status.LatestCommitHash))
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-secondary-subtle text-secondary font-monospace">@status.LatestCommitHash</span>
+                            <span class="text-muted fs-xs">HEAD</span>
+                        </div>
+                        <h6 class="fw-bold mb-2">@status.LatestCommitSubject</h6>
+                        <a href="/repository/@repo.Id/commits?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-sm btn-outline-secondary w-100 mt-2">
+                            View Commit History &rarr;
+                        </a>
+                    }
+                    else
+                    {
+                        <p class="text-muted fs-sm mb-0">No commits found or repository is empty.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Navigation Shortcuts -->
+            <div class="card border-0 shadow-sm bg-card p-3">
+                <h6 class="fw-semibold mb-3">Quick Navigation</h6>
+                <div class="d-grid gap-2">
+                    <a href="/repository/@repo.Id/branches?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-bezier2 me-2"></i> Manage Branches</span>
+                        <i class="bi bi-chevron-right fs-xs"></i>
+                    </a>
+                    <a href="/repository/@repo.Id/stashes?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-archive me-2"></i> Git Stashes</span>
+                        <i class="bi bi-chevron-right fs-xs"></i>
+                    </a>
+                    <a href="/repository/@repo.Id/remotes?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-cloud-arrow-up me-2"></i> Remote URLs</span>
+                        <i class="bi bi-chevron-right fs-xs"></i>
+                    </a>
+                    <a href="/repository/@repo.Id/terminal?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-outline-secondary btn-sm text-start d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-terminal me-2"></i> Open Terminal</span>
+                        <i class="bi bi-chevron-right fs-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    async function gitFetch(repoPath) {
+        LGMS.showLoading("Fetching remotes...", "git fetch --all --prune");
+        try {
+            const res = await fetch('/api/git/fetch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast("✓ Fetch completed successfully", "success");
+                setTimeout(() => location.reload(), 500);
+            } else {
+                LGMS.toast("✕ Fetch failed: " + (data.error || "Unknown error"), "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Fetch failed", "error");
+        }
+    }
+
+    async function gitPull(repoPath) {
+        LGMS.showLoading("Pulling changes...", "git pull");
+        try {
+            const res = await fetch('/api/git/pull', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, force: false })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast("✓ Pull completed", "success");
+                setTimeout(() => location.reload(), 500);
+            } else {
+                if (data.error && data.error.includes("Local uncommitted changes")) {
+                    if (confirm(data.error + "\n\nDo you want to force pull anyway?")) {
+                        LGMS.showLoading("Force pulling...", "git pull");
+                        const forceRes = await fetch('/api/git/pull', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ path: repoPath, force: true })
+                        });
+                        const forceData = await forceRes.json();
+                        LGMS.hideLoading();
+                        if (forceData.success) {
+                            LGMS.toast("Pull completed", "success");
+                            setTimeout(() => location.reload(), 500);
+                        } else {
+                            LGMS.toast("Pull failed: " + forceData.error, "error");
+                        }
+                    }
+                } else {
+                    LGMS.toast("✕ Pull failed: " + (data.error || "Unknown error"), "error");
+                }
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Pull failed", "error");
+        }
+    }
+
+    async function gitPush(repoPath) {
+        LGMS.showLoading("Pushing to remote...", "git push");
+        try {
+            const res = await fetch('/api/git/push', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast("✓ Push completed", "success");
+                setTimeout(() => location.reload(), 500);
+            } else {
+                LGMS.toast("✕ Push failed: " + (data.error || data.output || "Unknown error"), "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Push request error", "error");
+        }
+    }
+</script>
+}

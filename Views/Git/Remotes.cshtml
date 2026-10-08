@@ -1,0 +1,133 @@
+@model List<LGMS.Models.GitRemote>
+@{
+    var repo = (LGMS.Models.Repository)ViewBag.Repository;
+    ViewData["Title"] = $"{repo.Name} — Remotes";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-muted text-decoration-none">@repo.Name</a>
+                <span class="text-muted">/</span>
+                <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @repo.CurrentBranch</span>
+            </div>
+            <h3 class="fw-bold mb-0">Remote Repositories</h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="location.reload();">
+                <i class="bi bi-arrow-clockwise"></i> <span>Refresh</span>
+            </button>
+            <button class="btn btn-primary d-flex align-items-center gap-1" onclick="promptAddRemote()">
+                <i class="bi bi-plus-lg"></i> <span>Add Remote</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm bg-card">
+        <div class="card-header bg-transparent border-bottom py-3">
+            <h5 class="fw-semibold mb-0"><i class="bi bi-cloud-arrow-up me-2 text-primary"></i> Configured Remotes (@Model.Count)</h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Any())
+            {
+                <div class="list-group list-group-flush">
+                    @foreach (var remote in Model)
+                    {
+                        <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center p-3 gap-2">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="fw-bold fs-6 text-primary">@remote.Name</span>
+                                    <span class="badge bg-secondary-subtle text-secondary">upstream</span>
+                                </div>
+                                <div class="font-monospace fs-xs text-muted mb-1 text-break">
+                                    <i class="bi bi-download me-1"></i> Fetch: @remote.FetchUrl
+                                </div>
+                                @if (remote.PushUrl != remote.FetchUrl)
+                                {
+                                    <div class="font-monospace fs-xs text-muted text-break">
+                                        <i class="bi bi-upload me-1"></i> Push: @remote.PushUrl
+                                    </div>
+                                }
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText('@remote.FetchUrl'); LGMS.toast('Remote URL copied', 'info');">
+                                    <i class="bi bi-clipboard me-1"></i> Copy URL
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmRemoveRemote('@remote.Name')">
+                                    <i class="bi bi-trash me-1"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-cloud-slash fs-1 mb-2 d-block text-secondary"></i>
+                    <h6 class="fw-semibold">No Remotes Configured</h6>
+                    <p class="fs-sm mb-3">Add a remote repository (e.g. GitHub, GitLab, Azure DevOps) to push and pull changes.</p>
+                    <button class="btn btn-sm btn-primary" onclick="promptAddRemote()">Add Remote (e.g. origin)</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const repoPath = '@Html.Raw(repo.Path)';
+
+    async function promptAddRemote() {
+        const name = prompt("Remote Name (e.g. origin):", "origin");
+        if (!name) return;
+        const url = prompt("Remote Git URL (e.g. https://github.com/org/repo.git):");
+        if (!url) return;
+
+        LGMS.showLoading(`Adding remote ${name}...`, "git remote add");
+        try {
+            const res = await fetch('/api/git/remote/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, name: name.trim(), url: url.trim() })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ Remote ${name} added`, "success");
+                location.reload();
+            } else {
+                LGMS.toast(data.error || "Failed to add remote", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Remote add error", "error");
+        }
+    }
+
+    async function confirmRemoveRemote(name) {
+        if (confirm(`Are you sure you want to remove remote '${name}'?`)) {
+            LGMS.showLoading(`Removing remote ${name}...`, "git remote remove");
+            try {
+                const res = await fetch('/api/git/remote/remove', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: repoPath, name })
+                });
+                const data = await res.json();
+                LGMS.hideLoading();
+                if (data.success) {
+                    LGMS.toast(`✓ Remote ${name} removed`, "info");
+                    location.reload();
+                } else {
+                    LGMS.toast(data.error || "Failed to remove remote", "error");
+                }
+            } catch (e) {
+                LGMS.hideLoading();
+                LGMS.toast("Remote remove error", "error");
+            }
+        }
+    }
+</script>
+}

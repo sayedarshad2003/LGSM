@@ -1,0 +1,194 @@
+@model LGMS.Models.WorkspaceSettings
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">LGMS Settings</h3>
+            <p class="text-muted fs-sm mb-0">Configure your local Git management environment and appearance.</p>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">
+            <i class="bi bi-save me-1"></i> Save Changes
+        </button>
+    </div>
+
+    <div class="row g-4">
+        <!-- Workspace Settings -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm bg-card mb-4">
+                <div class="card-header bg-transparent border-bottom py-3">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-folder2-open me-2 text-primary"></i> Workspace Configuration</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label for="settingsWorkingFolder" class="form-label fw-semibold fs-sm">Working Folder Path</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace fs-sm" id="settingsWorkingFolder" value="@Model.WorkingFolder" />
+                            <button class="btn btn-outline-secondary" onclick="browseFolder()">Browse</button>
+                        </div>
+                        <div class="form-text fs-xs text-muted">Repositories will be discovered recursively inside this folder only.</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="triggerScan()">
+                            <i class="bi bi-search me-1"></i> Scan Repositories Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Git Executable Settings -->
+            <div class="card border-0 shadow-sm bg-card">
+                <div class="card-header bg-transparent border-bottom py-3">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-git me-2 text-danger"></i> Git Executable</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <label for="settingsGitExecutable" class="form-label fw-semibold fs-sm">Git CLI Binary Location</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace fs-sm" id="settingsGitExecutable" value="@Model.GitExecutable" />
+                            <button class="btn btn-outline-secondary" onclick="detectGit()">Detect Git</button>
+                        </div>
+                        <div class="form-text fs-xs text-muted">System version: <span class="badge bg-secondary-subtle text-secondary" id="git-version-badge">@ViewBag.GitVersion</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Appearance and Startup -->
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm bg-card mb-4">
+                <div class="card-header bg-transparent border-bottom py-3">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-palette me-2 text-info"></i> Appearance</h5>
+                </div>
+                <div class="card-body p-4">
+                    <label class="form-label fw-semibold fs-sm mb-2">Theme</label>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="themeRadio" id="themeDark" value="dark" @(Model.Theme == "dark" ? "checked" : "") onchange="onThemeChanged('dark')" />
+                            <label class="form-check-label" for="themeDark">
+                                <i class="bi bi-moon-stars me-1 text-primary"></i> Dark (Default developer IDE theme)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="themeRadio" id="themeLight" value="light" @(Model.Theme == "light" ? "checked" : "") onchange="onThemeChanged('light')" />
+                            <label class="form-check-label" for="themeLight">
+                                <i class="bi bi-sun me-1 text-warning"></i> Light (High contrast clean theme)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="themeRadio" id="themeSystem" value="system" @(Model.Theme == "system" ? "checked" : "") onchange="onThemeChanged('system')" />
+                            <label class="form-check-label" for="themeSystem">
+                                <i class="bi bi-display me-1 text-secondary"></i> System Preference
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Startup Preferences -->
+            <div class="card border-0 shadow-sm bg-card">
+                <div class="card-header bg-transparent border-bottom py-3">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-toggles me-2 text-success"></i> Startup Preferences</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="chkRestoreLastRepo" @(Model.RestoreLastRepository ? "checked" : "") />
+                        <label class="form-check-label fs-sm" for="chkRestoreLastRepo">Restore last opened repository on startup</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="chkAutoScan" @(Model.AutoScanRepositories ? "checked" : "") />
+                        <label class="form-check-label fs-sm" for="chkAutoScan">Automatically scan repositories on launch</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="chkRememberFolder" @(Model.RememberWorkingFolder ? "checked" : "") />
+                        <label class="form-check-label fs-sm" for="chkRememberFolder">Remember working folder across sessions</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function onThemeChanged(theme) {
+        LGMS.applyTheme(theme);
+    }
+
+    async function detectGit() {
+        LGMS.showLoading("Detecting Git...", "Searching system PATH and common directories");
+        try {
+            const res = await fetch('/api/settings/detect-git', { method: 'POST' });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                document.getElementById('settingsGitExecutable').value = data.path;
+                document.getElementById('git-version-badge').innerText = data.version;
+                LGMS.toast(`✓ Git found: ${data.version}`, "success");
+            } else {
+                LGMS.toast(data.message || "Git not detected automatically", "warning");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Detection failed", "error");
+        }
+    }
+
+    function browseFolder() {
+        const current = document.getElementById('settingsWorkingFolder').value;
+        const next = prompt("Enter local workspace directory path:", current);
+        if (next) {
+            document.getElementById('settingsWorkingFolder').value = next;
+        }
+    }
+
+    async function triggerScan() {
+        const folder = document.getElementById('settingsWorkingFolder').value.trim();
+        LGMS.showLoading("Scanning workspace...", "Enumerating .git directories");
+        try {
+            const res = await fetch(`/api/repositories?folder=${encodeURIComponent(folder)}`);
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ Scan completed. ${data.total} repositories discovered.`, "success");
+            } else {
+                LGMS.toast(data.message || "Scan failed", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Scan error", "error");
+        }
+    }
+
+    async function saveSettings() {
+        const settings = {
+            workingFolder: document.getElementById('settingsWorkingFolder').value.trim(),
+            gitExecutable: document.getElementById('settingsGitExecutable').value.trim(),
+            theme: document.querySelector('input[name="themeRadio"]:checked')?.value || 'dark',
+            restoreLastRepository: document.getElementById('chkRestoreLastRepo').checked,
+            autoScanRepositories: document.getElementById('chkAutoScan').checked,
+            rememberWorkingFolder: document.getElementById('chkRememberFolder').checked
+        };
+
+        try {
+            const res = await fetch('/api/settings/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(settings)
+            });
+            const data = await res.json();
+            if (data.success) {
+                LGMS.toast("✓ Settings saved successfully", "success");
+                localStorage.setItem('lgms_settings', JSON.stringify(settings));
+            } else {
+                LGMS.toast("Failed to save settings", "error");
+            }
+        } catch (e) {
+            LGMS.toast("Save error", "error");
+        }
+    }
+</script>
+}

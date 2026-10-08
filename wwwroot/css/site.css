@@ -1,0 +1,222 @@
+:root {
+    --lgms-bg: #0f1115;
+    --lgms-sidebar: #151821;
+    --lgms-card: #1b1f29;
+    --lgms-border: #2a2f3a;
+    --lgms-text: #f3f4f6;
+    --lgms-muted: #9ca3af;
+    --lgms-accent: #6366f1;
+    --lgms-success: #22c55e;
+    --lgms-warning: #f59e0b;
+    --lgms-danger: #ef4444;
+    --lgms-subtle: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] {
+    --lgms-bg: #f6f7f9;
+    --lgms-sidebar: #ffffff;
+    --lgms-card: #ffffff;
+    --lgms-border: #e5e7eb;
+    --lgms-text: #111827;
+    --lgms-muted: #6b7280;
+    --lgms-accent: #4f46e5;
+    --lgms-success: #16a34a;
+    --lgms-warning: #d97706;
+    --lgms-danger: #dc2626;
+    --lgms-subtle: rgba(0, 0, 0, 0.03);
+}
+
+body.lgms-app {
+    background-color: var(--lgms-bg);
+    color: var(--lgms-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.bg-card {
+    background-color: var(--lgms-card) !important;
+    border-color: var(--lgms-border) !important;
+}
+
+.bg-subtle {
+    background-color: var(--lgms-subtle) !important;
+}
+
+/* Header / TopBar */
+.lgms-topbar {
+    height: 56px;
+    background-color: var(--lgms-sidebar);
+    border-bottom: 1px solid var(--lgms-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.brand-badge {
+    background: linear-gradient(135deg, #f97316, #ef4444);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 1.1rem;
+}
+
+.brand-title {
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.5px;
+    color: var(--lgms-text);
+}
+
+.brand-subtitle {
+    font-size: 0.75rem;
+    color: var(--lgms-muted);
+    margin-left: 0.5rem;
+}
+
+/* Layout container */
+.lgms-container {
+    display: flex;
+    flex: 1;
+    min-height: calc(100vh - 56px);
+}
+
+/* Sidebar */
+.lgms-sidebar {
+    width: 240px;
+    background-color: var(--lgms-sidebar);
+    border-right: 1px solid var(--lgms-border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    transition: transform 0.2s ease-in-out;
+}
+
+@media (max-width: 991.98px) {
+    .lgms-sidebar {
+        position: fixed;
+        top: 56px;
+        bottom: 0;
+        left: 0;
+        z-index: 1040;
+        transform: translateX(-100%);
+    }
+    .lgms-sidebar.open {
+        transform: translateX(0);
+    }
+}
+
+.sidebar-nav .nav-link {
+    color: var(--lgms-muted);
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 6px;
+    margin: 0.15rem 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.sidebar-nav .nav-link:hover {
+    color: var(--lgms-text);
+    background-color: var(--lgms-subtle);
+}
+
+.sidebar-nav .nav-link.active {
+    color: #ffffff;
+    background-color: var(--lgms-accent);
+}
+
+/* Main Viewport */
+.lgms-main {
+    flex: 1;
+    overflow-y: auto;
+    background-color: var(--lgms-bg);
+}
+
+/* Badges & Pills */
+.branch-pill {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: var(--lgms-accent);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    font-weight: 600;
+}
+
+.repo-pill {
+    background-color: var(--lgms-subtle);
+    color: var(--lgms-text);
+    border: 1px solid var(--lgms-border);
+}
+
+.fs-xs {
+    font-size: 0.75rem;
+}
+
+.fs-sm {
+    font-size: 0.85rem;
+}
+
+/* Diff Styling */
+.diff-viewer {
+    background-color: #0b0d11;
+    color: #e6edf3;
+    border-radius: 6px;
+}
+
+.diff-line {
+    padding: 2px 8px;
+    display: flex;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.diff-sign {
+    width: 20px;
+    user-select: none;
+    font-weight: bold;
+}
+
+.diff-added {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.diff-removed {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.diff-hunk {
+    background-color: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    font-weight: 600;
+}
+
+/* Loading Overlay */
+.lgms-loading-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(2px);
+}

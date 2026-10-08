@@ -1,0 +1,170 @@
+@model List<LGMS.Models.GitStash>
+@{
+    var repo = (LGMS.Models.Repository)ViewBag.Repository;
+    ViewData["Title"] = $"{repo.Name} — Stashes";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-muted text-decoration-none">@repo.Name</a>
+                <span class="text-muted">/</span>
+                <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @repo.CurrentBranch</span>
+            </div>
+            <h3 class="fw-bold mb-0">Git Stashes</h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="location.reload();">
+                <i class="bi bi-arrow-clockwise"></i> <span>Refresh</span>
+            </button>
+            <button class="btn btn-primary d-flex align-items-center gap-1" onclick="promptSaveStash()">
+                <i class="bi bi-archive"></i> <span>Stash Changes</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm bg-card">
+        <div class="card-header bg-transparent border-bottom py-3">
+            <h5 class="fw-semibold mb-0"><i class="bi bi-box-seam me-2 text-muted"></i> Saved Stashes (@Model.Count)</h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Any())
+            {
+                <div class="list-group list-group-flush">
+                    @foreach (var stash in Model)
+                    {
+                        <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center p-3 gap-2">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace">@stash.RefName</span>
+                                    <span class="text-muted fs-xs">@stash.Date</span>
+                                </div>
+                                <div class="fw-medium">@stash.Message</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="stashApply('@stash.RefName')">
+                                    Apply
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="stashPop('@stash.RefName')">
+                                    Pop
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmStashDrop('@stash.RefName')">
+                                    Drop
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-archive fs-1 mb-2 d-block text-secondary"></i>
+                    <h6 class="fw-semibold">No Stashed Changes</h6>
+                    <p class="fs-sm mb-3">You can temporarily shelf modified files and untracked changes by stashing them.</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="promptSaveStash()">Stash Current Changes</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const repoPath = '@Html.Raw(repo.Path)';
+
+    async function promptSaveStash() {
+        const msg = prompt("Enter optional stash description message:", "WIP on " + new Date().toLocaleTimeString());
+        if (msg !== null) {
+            LGMS.showLoading("Stashing changes...", "git stash push");
+            try {
+                const res = await fetch('/api/git/stash/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: repoPath, message: msg })
+                });
+                const data = await res.json();
+                LGMS.hideLoading();
+                if (data.success) {
+                    LGMS.toast("✓ Changes stashed successfully", "success");
+                    location.reload();
+                } else {
+                    LGMS.toast(data.error || "Stash save failed", "error");
+                }
+            } catch (e) {
+                LGMS.hideLoading();
+                LGMS.toast("Stash error", "error");
+            }
+        }
+    }
+
+    async function stashApply(ref) {
+        LGMS.showLoading(`Applying ${ref}...`, "git stash apply");
+        try {
+            const res = await fetch('/api/git/stash/apply', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, stashRef: ref })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ Stash ${ref} applied`, "success");
+                location.reload();
+            } else {
+                LGMS.toast(data.error || "Apply failed", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Apply error", "error");
+        }
+    }
+
+    async function stashPop(ref) {
+        LGMS.showLoading(`Popping ${ref}...`, "git stash pop");
+        try {
+            const res = await fetch('/api/git/stash/pop', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, stashRef: ref })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ Stash ${ref} popped`, "success");
+                location.reload();
+            } else {
+                LGMS.toast(data.error || "Pop failed", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Pop error", "error");
+        }
+    }
+
+    async function confirmStashDrop(ref) {
+        if (confirm(`DANGER: Are you sure you want to drop '${ref}'?\nThis stash entry will be permanently removed.`)) {
+            LGMS.showLoading(`Dropping ${ref}...`, "git stash drop");
+            try {
+                const res = await fetch('/api/git/stash/drop', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: repoPath, stashRef: ref })
+                });
+                const data = await res.json();
+                LGMS.hideLoading();
+                if (data.success) {
+                    LGMS.toast(`✓ Stash ${ref} dropped`, "info");
+                    location.reload();
+                } else {
+                    LGMS.toast(data.error || "Drop failed", "error");
+                }
+            } catch (e) {
+                LGMS.hideLoading();
+                LGMS.toast("Drop error", "error");
+            }
+        }
+    }
+</script>
+}

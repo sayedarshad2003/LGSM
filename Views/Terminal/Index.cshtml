@@ -1,0 +1,127 @@
+@{
+    var repo = (LGMS.Models.Repository)ViewBag.Repository;
+    ViewData["Title"] = $"{repo.Name} — Terminal";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-muted text-decoration-none">@repo.Name</a>
+                <span class="text-muted">/</span>
+                <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @repo.CurrentBranch</span>
+            </div>
+            <h3 class="fw-bold mb-0">LGMS Git Terminal</h3>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary-subtle text-secondary font-monospace fs-xs">
+                CWD: @repo.Path
+            </span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="clearTerminal()">
+                <i class="bi bi-trash me-1"></i> Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Git Shortcuts Toolbar -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="btn btn-sm btn-outline-secondary font-monospace" onclick="executeSnippet('git status')">git status</button>
+        <button class="btn btn-sm btn-outline-secondary font-monospace" onclick="executeSnippet('git branch -v')">git branch -v</button>
+        <button class="btn btn-sm btn-outline-secondary font-monospace" onclick="executeSnippet('git log --oneline -n 5')">git log --oneline -5</button>
+        <button class="btn btn-sm btn-outline-secondary font-monospace" onclick="executeSnippet('git remote -v')">git remote -v</button>
+        <button class="btn btn-sm btn-outline-secondary font-monospace" onclick="executeSnippet('git diff --stat')">git diff --stat</button>
+    </div>
+
+    <!-- Terminal Window -->
+    <div class="card border-0 shadow-sm terminal-window bg-dark text-light rounded-3 overflow-hidden">
+        <div class="terminal-header bg-black bg-opacity-50 px-3 py-2 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
+            <div class="d-flex gap-2">
+                <span class="rounded-circle bg-danger d-inline-block" style="width: 12px; height: 12px;"></span>
+                <span class="rounded-circle bg-warning d-inline-block" style="width: 12px; height: 12px;"></span>
+                <span class="rounded-circle bg-success d-inline-block" style="width: 12px; height: 12px;"></span>
+            </div>
+            <div class="text-muted font-monospace fs-xs">LGMS Terminal Sandbox — Protected Git Process Host</div>
+            <div class="text-muted fs-xs">UTF-8</div>
+        </div>
+
+        <div class="terminal-body p-3 font-monospace fs-xs" id="terminal-output" style="min-height: 420px; max-height: 550px; overflow-y: auto;">
+            <div class="text-secondary mb-2">Local Git Management System [Version 9.0]</div>
+            <div class="text-secondary mb-3">Working repository: @repo.Path</div>
+            <div class="text-muted mb-3">Type any git command (e.g. <code>git status</code>, <code>git log</code>) and press Enter.</div>
+        </div>
+
+        <div class="terminal-footer bg-black bg-opacity-75 p-2 px-3 border-top border-secondary border-opacity-25">
+            <form id="terminal-form" onsubmit="submitTerminalCommand(event)" class="d-flex align-items-center gap-2">
+                <span class="text-success font-monospace fw-bold">$</span>
+                <input type="text" id="terminal-input" class="form-control form-control-sm bg-transparent border-0 text-light font-monospace shadow-none p-0" placeholder="git <command>..." autocomplete="off" />
+                <button type="submit" class="btn btn-sm btn-primary px-3">Run</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const repoPath = '@Html.Raw(repo.Path)';
+    const terminalOutput = document.getElementById('terminal-output');
+    const terminalInput = document.getElementById('terminal-input');
+
+    function clearTerminal() {
+        terminalOutput.innerHTML = '<div class="text-secondary">Terminal cleared.</div>';
+    }
+
+    function executeSnippet(cmd) {
+        terminalInput.value = cmd;
+        submitTerminalCommand();
+    }
+
+    async function submitTerminalCommand(e) {
+        if (e) e.preventDefault();
+        const cmd = terminalInput.value.trim();
+        if (!cmd) return;
+
+        // Print command prompt line
+        const cmdDiv = document.createElement('div');
+        cmdDiv.className = 'mt-2 text-warning';
+        cmdDiv.innerHTML = `<span class="text-success">$</span> ${escapeHtml(cmd)}`;
+        terminalOutput.appendChild(cmdDiv);
+
+        terminalInput.value = '';
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+
+        try {
+            const res = await fetch('/api/git/terminal/run', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: repoPath, command: cmd })
+            });
+            const data = await res.json();
+
+            const resDiv = document.createElement('div');
+            resDiv.className = 'my-1';
+
+            if (data.output) {
+                resDiv.innerHTML += `<pre class="mb-1 text-light font-monospace fs-xs" style="white-space: pre-wrap;">${escapeHtml(data.output)}</pre>`;
+            }
+            if (data.error) {
+                resDiv.innerHTML += `<pre class="mb-1 text-danger font-monospace fs-xs" style="white-space: pre-wrap;">${escapeHtml(data.error)}</pre>`;
+            }
+            if (!data.output && !data.error) {
+                resDiv.innerHTML += `<span class="text-muted fs-xs">Done (code: ${data.exitCode}, ${data.durationMs}ms)</span>`;
+            }
+
+            terminalOutput.appendChild(resDiv);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        } catch (err) {
+            const errDiv = document.createElement('div');
+            errDiv.className = 'text-danger fs-xs';
+            errDiv.innerText = 'Command dispatch error.';
+            terminalOutput.appendChild(errDiv);
+        }
+    }
+
+    function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+</script>
+}
