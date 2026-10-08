@@ -50,8 +50,8 @@ public class RepositoryScanner : IRepositoryScanner
 
         var normalizedRoot = NormalizePath(rootPath);
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var queue = new Queue<string>();
-        queue.Enqueue(normalizedRoot);
+        var queue = new Queue<(string Path, int Depth)>();
+        queue.Enqueue((normalizedRoot, 0));
 
         await Task.Run(async () =>
         {
@@ -59,7 +59,7 @@ public class RepositoryScanner : IRepositoryScanner
             {
                 if (cancellationToken.IsCancellationRequested) break;
 
-                var currentDir = queue.Dequeue();
+                var (currentDir, depth) = queue.Dequeue();
                 if (!visited.Add(currentDir)) continue;
 
                 // Check if current directory is a git repository (.git folder or .git file for worktree)
@@ -80,9 +80,11 @@ public class RepositoryScanner : IRepositoryScanner
                     {
                         _logger.LogWarning(ex, "Failed to load repo details for {Path}", currentDir);
                     }
-                    // Do not descend into .git or subfolders of a normal repo unless needed
+                    // Stop descending into a repository's internal folders
                     continue;
                 }
+
+                if (depth >= 4) continue;
 
                 // Enumerate subdirectories safely
                 try
@@ -91,17 +93,23 @@ public class RepositoryScanner : IRepositoryScanner
                     foreach (var sub in subdirs)
                     {
                         var dirName = Path.GetFileName(sub);
-                        // Skip system, build, node_modules, and hidden folders
-                        if (dirName.Equals(".git", StringComparison.OrdinalIgnoreCase) ||
+                        if (string.IsNullOrEmpty(dirName)) continue;
+
+                        // Skip system, build, TFS, package, and hidden folders
+                        if (dirName.StartsWith('.') ||
+                            dirName.StartsWith('$') ||
                             dirName.Equals("node_modules", StringComparison.OrdinalIgnoreCase) ||
                             dirName.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
                             dirName.Equals("obj", StringComparison.OrdinalIgnoreCase) ||
-                            dirName.Equals(".vs", StringComparison.OrdinalIgnoreCase))
+                            dirName.Equals("packages", StringComparison.OrdinalIgnoreCase) ||
+                            dirName.Equals("dist", StringComparison.OrdinalIgnoreCase) ||
+                            dirName.Equals("build", StringComparison.OrdinalIgnoreCase) ||
+                            dirName.Equals("vendor", StringComparison.OrdinalIgnoreCase))
                         {
                             continue;
                         }
 
-                        queue.Enqueue(sub);
+                        queue.Enqueue((sub, depth + 1));
                     }
                 }
                 catch (UnauthorizedAccessException) { /* Ignore unauthorized folders */ }
@@ -136,15 +144,25 @@ public class RepositoryScanner : IRepositoryScanner
             LastAccessed = DateTime.UtcNow
         };
 
+        var quickTimeout = TimeSpan.FromSeconds(3);
+
         // Query branch
-        var branchResult = await _processService.ExecuteAsync("git", new[] { "rev-parse", "--abbrev-ref", "HEAD" }, repoPath, cancellationToken);
-        if (branchResult.Success)
+        var branchResult = await _processService.ExecuteAsync("git", new[] { "branch", "--show-current" }, repoPath, cancellationToken, quickTimeout);
+        if (branchResult.Success && !string.IsNullOrWhiteSpace(branchResult.StandardOutput))
         {
             repo.CurrentBranch = branchResult.StandardOutput.Trim();
         }
+        else
+        {
+            var revParseResult = await _processService.ExecuteAsync("git", new[] { "rev-parse", "--abbrev-ref", "HEAD" }, repoPath, cancellationToken, quickTimeout);
+            if (revParseResult.Success && !string.IsNullOrWhiteSpace(revParseResult.StandardOutput))
+            {
+                repo.CurrentBranch = revParseResult.StandardOutput.Trim();
+            }
+        }
 
         // Query status porcelain
-        var statusResult = await _processService.ExecuteAsync("git", new[] { "status", "--porcelain=v1" }, repoPath, cancellationToken);
+        var statusResult = await _processService.ExecuteAsync("git", new[] { "status", "--porcelain=v1" }, repoPath, cancellationToken, quickTimeout);
         if (statusResult.Success)
         {
             var lines = statusResult.StandardOutput.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -153,7 +171,7 @@ public class RepositoryScanner : IRepositoryScanner
         }
 
         // Query ahead / behind
-        var revListResult = await _processService.ExecuteAsync("git", new[] { "rev-list", "--left-right", "--count", "@{upstream}...HEAD" }, repoPath, cancellationToken);
+        var revListResult = await _processService.ExecuteAsync("git", new[] { "rev-list", "--left-right", "--count", "@{upstream}...HEAD" }, repoPath, cancellationToken, quickTimeout);
         if (revListResult.Success)
         {
             var parts = revListResult.StandardOutput.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
@@ -165,7 +183,7 @@ public class RepositoryScanner : IRepositoryScanner
         }
 
         // Query last commit
-        var logResult = await _processService.ExecuteAsync("git", new[] { "log", "-1", "--format=%h%x09%s" }, repoPath, cancellationToken);
+        var logResult = await _processService.ExecuteAsync("git", new[] { "log", "-1", "--format=%h%x09%s" }, repoPath, cancellationToken, quickTimeout);
         if (logResult.Success && !string.IsNullOrWhiteSpace(logResult.StandardOutput))
         {
             var parts = logResult.StandardOutput.Trim().Split('\t');

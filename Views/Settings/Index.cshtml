@@ -137,11 +137,19 @@
         }
     }
 
-    function browseFolder() {
-        const current = document.getElementById('settingsWorkingFolder').value;
-        const next = prompt("Enter local workspace directory path:", current);
-        if (next) {
-            document.getElementById('settingsWorkingFolder').value = next;
+    async function browseFolder() {
+        LGMS.toast("Opening file manager dialog...", "info");
+        try {
+            const res = await fetch('/api/workspace/browse-native', { method: 'POST' });
+            const data = await res.json();
+            if (data.success && data.folder) {
+                document.getElementById('settingsWorkingFolder').value = data.folder;
+                LGMS.toast(`✓ Selected folder: ${data.folder}`, "success");
+            } else if (data.message && data.message !== "No folder selected or dialog cancelled.") {
+                LGMS.toast(data.message, "warning");
+            }
+        } catch (e) {
+            LGMS.toast("Failed to open file manager dialog", "error");
         }
     }
 

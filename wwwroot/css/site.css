@@ -192,12 +192,12 @@ body.lgms-app {
 
 .diff-added {
     background-color: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
+    color: #1e8343;
 }
 
 .diff-removed {
     background-color: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    color: #b54141;
 }
 
 .diff-hunk {

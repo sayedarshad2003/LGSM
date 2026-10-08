@@ -151,31 +151,198 @@
     </div>
 </div>
 
+<!-- Workspace Modal -->
+<div class="modal fade" id="workspaceModal" tabindex="-1" aria-labelledby="workspaceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-card border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="workspaceModalLabel"><i class="bi bi-folder2-open text-primary me-2"></i>Select Workspace Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <label for="workspaceInput" class="form-label fw-semibold fs-sm">Workspace Directory Path</label>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control font-monospace fs-sm" id="workspaceInput" value="@Model.Settings.WorkingFolder" placeholder="e.g. C:\Projects or E:\Asp.NET Work" />
+                    <button class="btn btn-primary d-flex align-items-center gap-2" type="button" id="btn-native-picker" onclick="openNativeFolderPicker()">
+                        <i class="bi bi-window-sidebar"></i> <span>Browse File Manager</span>
+                    </button>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fs-xs text-muted text-uppercase fw-bold">Or Select Drive & Subfolder:</span>
+                    <button class="btn btn-xs btn-link text-decoration-none p-0 fs-xs" onclick="navigateParentFolder()"><i class="bi bi-arrow-up-circle me-1"></i>Up to Parent</button>
+                </div>
+
+                <!-- Drive Selector Pills -->
+                <div class="d-flex flex-wrap gap-2 mb-3" id="drive-pills-container">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                </div>
+
+                <!-- Subfolder Grid List -->
+                <div class="border rounded p-2 bg-subtle" style="max-height: 220px; overflow-y: auto;" id="folder-list-container">
+                    <div class="p-3 text-center text-muted fs-sm">Loading folder contents...</div>
+                </div>
+
+                <div class="form-text fs-xs text-muted mt-3">
+                    <i class="bi bi-info-circle me-1"></i> LGMS will scan all Git repositories inside the selected folder.
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitWorkspaceChange()">
+                    <i class="bi bi-check2 me-1"></i> Set & Scan Workspace
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script>
-    async function promptWorkspaceFolder() {
+    let currentNavPath = "";
+
+    function promptWorkspaceFolder() {
         const current = document.getElementById('current-workspace-path').innerText.trim();
-        const next = prompt("Enter Git Workspace Folder Path:", current);
-        if (next && next !== current) {
-            LGMS.showLoading("Updating Workspace", "Setting workspace path and scanning...");
-            try {
-                const res = await fetch('/HomeController/SetWorkspace', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ workingFolder: next })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    LGMS.toast("Workspace updated", "success");
-                    location.href = '/?workspace=' + encodeURIComponent(next);
-                } else {
-                    LGMS.toast(data.message || "Failed to update workspace", "error");
-                }
-            } catch (e) {
-                LGMS.toast("Error setting workspace", "error");
-            } finally {
-                LGMS.hideLoading();
+        const input = document.getElementById('workspaceInput');
+        if (input) input.value = current;
+        currentNavPath = current;
+        
+        const modalEl = document.getElementById('workspaceModal');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+            loadDrives();
+            loadSubfolders(current);
+        } else {
+            openNativeFolderPicker();
+        }
+    }
+
+    async function openNativeFolderPicker() {
+        const btn = document.getElementById('btn-native-picker');
+        if (btn) btn.disabled = true;
+        LGMS.toast("Opening file manager dialog...", "info");
+        try {
+            const res = await fetch('/api/workspace/browse-native', { method: 'POST' });
+            const data = await res.json();
+            if (data.success && data.folder) {
+                document.getElementById('workspaceInput').value = data.folder;
+                LGMS.toast(`✓ Selected folder: ${data.folder}`, "success");
+                await applyWorkspace(data.folder);
+            } else if (data.message && data.message !== "No folder selected or dialog cancelled.") {
+                LGMS.toast(data.message, "warning");
             }
+        } catch (e) {
+            LGMS.toast("Failed to open file manager dialog", "error");
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async function loadDrives() {
+        const container = document.getElementById('drive-pills-container');
+        if (!container) return;
+        try {
+            const res = await fetch('/api/filesystem/drives');
+            const data = await res.json();
+            if (data.success && data.drives) {
+                container.innerHTML = data.drives.map(d => `
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" onclick="selectAndBrowseFolder('${d.name.replace(/\\/g, '\\\\')}')">
+                        <i class="bi bi-hdd"></i> <strong>${d.name}</strong> <span class="fs-xs text-muted">(${d.volumeLabel})</span>
+                    </button>
+                `).join('');
+            }
+        } catch (e) {
+            container.innerHTML = '<span class="text-muted fs-xs">Drives unavailable</span>';
+        }
+    }
+
+    async function loadSubfolders(path) {
+        const container = document.getElementById('folder-list-container');
+        if (!container) return;
+        container.innerHTML = '<div class="p-3 text-center text-muted fs-sm"><div class="spinner-border spinner-border-sm me-2"></div> Loading directory...</div>';
+        try {
+            const res = await fetch(`/api/filesystem/folders?path=${encodeURIComponent(path)}`);
+            const data = await res.json();
+            if (data.success) {
+                currentNavPath = data.current;
+                if (!data.subfolders || data.subfolders.length === 0) {
+                    container.innerHTML = '<div class="p-3 text-center text-muted fs-xs">No accessible subdirectories found in this folder.</div>';
+                    return;
+                }
+                container.innerHTML = `
+                    <div class="list-group list-group-flush">
+                        ${data.subfolders.map(f => `
+                            <div class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-2 cursor-pointer" onclick="selectAndBrowseFolder('${f.path.replace(/\\/g, '\\\\')}')">
+                                <div class="d-flex align-items-center gap-2 text-truncate">
+                                    <i class="bi ${f.isGit ? 'bi-git text-danger' : 'bi-folder2 text-warning'} fs-5"></i>
+                                    <span class="fs-sm fw-medium">${f.name}</span>
+                                    ${f.isGit ? '<span class="badge bg-danger-subtle text-danger fs-xs">git repo</span>' : ''}
+                                </div>
+                                <button type="button" class="btn btn-xs btn-outline-primary" onclick="event.stopPropagation(); selectFolderOnly('${f.path.replace(/\\/g, '\\\\')}')">
+                                    Choose
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `<div class="p-3 text-center text-danger fs-xs">${data.message || "Failed to load directory"}</div>`;
+            }
+        } catch (e) {
+            container.innerHTML = '<div class="p-3 text-center text-danger fs-xs">Error reading directory.</div>';
+        }
+    }
+
+    function selectFolderOnly(path) {
+        document.getElementById('workspaceInput').value = path;
+        currentNavPath = path;
+    }
+
+    function selectAndBrowseFolder(path) {
+        document.getElementById('workspaceInput').value = path;
+        currentNavPath = path;
+        loadSubfolders(path);
+    }
+
+    function navigateParentFolder() {
+        if (!currentNavPath) return;
+        const parts = currentNavPath.split(/[\/\\]/).filter(Boolean);
+        if (parts.length > 1) {
+            parts.pop();
+            const parent = parts.join('\\') + (parts.length === 1 ? '\\' : '');
+            selectAndBrowseFolder(parent);
+        }
+    }
+
+    async function submitWorkspaceChange() {
+        const folder = document.getElementById('workspaceInput').value.trim();
+        if (!folder) {
+            LGMS.toast("Please enter or choose a valid directory path", "warning");
+            return;
+        }
+        await applyWorkspace(folder);
+    }
+
+    async function applyWorkspace(folderPath) {
+        LGMS.showLoading("Updating Workspace", "Setting workspace path and scanning repositories...");
+        try {
+            const res = await fetch('/api/workspace', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ workingFolder: folderPath })
+            });
+            const data = await res.json();
+            if (data.success) {
+                LGMS.toast("Workspace updated successfully", "success");
+                window.location.href = '/?workspace=' + encodeURIComponent(data.folder || folderPath);
+            } else {
+                LGMS.hideLoading();
+                LGMS.toast(data.message || "Failed to update workspace", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast("Error communicating with server", "error");
         }
     }
 
