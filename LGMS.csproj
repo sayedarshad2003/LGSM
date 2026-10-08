@@ -10,7 +10,20 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="LGMS.Core\**" />
+    <EmbeddedResource Remove="LGMS.Core\**" />
+    <None Remove="LGMS.Core\**" />
+    <Compile Remove="LGMS.Desktop\**" />
+    <EmbeddedResource Remove="LGMS.Desktop\**" />
+    <None Remove="LGMS.Desktop\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="LGMS.Core\LGMS.Core.csproj" />
   </ItemGroup>
 
 </Project>

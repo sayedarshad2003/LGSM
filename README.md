@@ -1,137 +1,67 @@
-# LGMS — Local Git Management System
+# LGMS — Local Git Management System (.NET 9)
 
-**LGMS (Local Git Management System)** is a local-first Git management desktop tool built with **ASP.NET Core MVC .NET 9**. It allows developers to select a working folder, automatically discover all local Git repositories inside it, inspect working trees, view unified and side-by-side diffs, stage/unstage files, commit, push, pull, fetch, manage branches, inspect commit history, stash changes, manage remotes, and execute commands in an integrated safe Git terminal.
-
----
-
-## 1. Requirements
-
-- **.NET 9 SDK** (`dotnet --version` >= 9.0.100)
-- **Git** for Windows / macOS / Linux (`git --version` >= 2.25)
-- Modern web browser (Chrome, Edge, Firefox, Safari)
+**LGMS (Local Git Management System)** is a local-first Git management suite featuring both a **Modern Native WPF Desktop Application** and an **ASP.NET Core MVC Web Application**, powered by a shared **.NET 9 Core Engine (`LGMS.Core`)**.
 
 ---
 
-## 2. Architecture
+## 1. Solution Architecture
 
 ```text
-Browser
-   ↓ (Razor Views / AJAX Fetch / HTML5 / CSS3)
-ASP.NET Core MVC (.NET 9)
-   ↓
-GitService & RepositoryScanner
-   ↓
-IProcessService (System.Diagnostics.Process)
-   ↓
-git.exe / git CLI
-   ↓
-Local Git Repositories
+LGMS.sln
+├── LGMS.Core/        # Shared core library (GitService, ProcessService, RepositoryScanner, Models)
+├── LGMS.Desktop/     # Native WPF Desktop Application (.NET 9 Windows with Modern Dark UI)
+└── LGMS/             # ASP.NET Core MVC 9 Web Application
 ```
 
-- **Local-first & Private**: No cloud telemetry, no remote tracking, and no external code uploading.
-- **Path Isolation**: Directory validation prevents path traversal outside the chosen workspace.
-- **Safe Process Invocation**: Uses `System.Diagnostics.Process` with UTF-8 streams and arguments list without shell concatenation.
+### Shared Logic Guarantee
+- Both the **Desktop App** and **Web App** share `100%` of the same core business logic, safe process invocation, repository discovery, staging, committing, stashing, branch management, and terminal execution from `LGMS.Core`.
 
 ---
 
-## 3. Project Structure
+## 2. Desktop Application Features (`LGMS.Desktop`)
 
-```text
-LGMS/
-├── Controllers/
-│   ├── HomeController.cs        # Workspace selection & root dashboard
-│   ├── RepositoryController.cs  # Repository discovery & dashboard
-│   ├── GitController.cs         # Working tree status, diff, staging, commit, push, pull
-│   ├── BranchController.cs      # Branch creation, checkout, merge, deletion
-│   ├── CommitController.cs      # Commit log history, details inspector, and patch diff
-│   ├── SettingsController.cs    # Git binary detection, workspace configuration, themes
-│   └── TerminalController.cs    # Sandboxed Git terminal within active repository
-│
-├── Services/
-│   ├── IProcessService.cs       # Asynchronous process runner with timeout and cancellation
-│   ├── ProcessService.cs
-│   ├── IRepositoryScanner.cs    # Safe recursive repository discovery (.git detection)
-│   ├── RepositoryScanner.cs
-│   ├── IGitService.cs           # Core Git command facade
-│   └── GitService.cs
-│
-├── Models/
-│   ├── GitResult.cs             # Structured Git execution result
-│   ├── Repository.cs            # Repository metadata
-│   ├── GitStatus.cs             # Parsed working tree status
-│   ├── GitChange.cs             # Staged/unstaged file change model
-│   ├── GitCommit.cs             # Commit log entry
-│   ├── GitBranch.cs             # Branch model (local & remote)
-│   ├── GitRemote.cs             # Remotes configuration
-│   ├── GitStash.cs              # Stash entry
-│   └── WorkspaceSettings.cs     # App configuration model
-│
-├── ViewModels/
-│   └── ViewModels.cs            # Typed view models for MVC views
-│
-├── Views/
-│   ├── Shared/
-│   │   ├── _Layout.cshtml       # Master layout with IDE structure
-│   │   ├── _Sidebar.cshtml      # Collapsible IDE navigation
-│   │   ├── _TopBar.cshtml       # Top action toolbar and active repo status
-│   │   ├── _Toast.cshtml        # Reusable notifications
-│   │   └── _LoadingOverlay.cshtml # Live Git command progress overlay
-│   ├── Home/Index.cshtml
-│   ├── Repository/Index.cshtml
-│   ├── Repository/Dashboard.cshtml
-│   ├── Git/Changes.cshtml
-│   ├── Git/Diff.cshtml
-│   ├── Branch/Index.cshtml
-│   ├── Commit/Index.cshtml
-│   ├── Git/Stashes.cshtml
-│   ├── Git/Remotes.cshtml
-│   ├── Terminal/Index.cshtml
-│   └── Settings/Index.cshtml
-│
-├── wwwroot/
-│   ├── css/
-│   │   ├── site.css             # IDE base styling
-│   │   ├── dark.css             # Dark theme variables & rules (default)
-│   │   └── light.css            # Light theme variables & rules
-│   └── js/
-│       └── site.js              # Vanilla JavaScript for AJAX and UI
-│
-├── appsettings.json
-├── Program.cs
-└── LGMS.csproj
-```
+- **Modern Dark UI**: Sleek palette inspired by GitHub Desktop and GitKraken with smooth controls and responsive layouts.
+- **Instant Workspace Scanner**: Recursively scans folders for local Git repositories with clean/dirty indicators, ahead/behind pills (`↑2 ↓1`), and branch badges.
+- **Working Tree & Staging Manager**:
+  - Unstaged & Staged file listings with individual and batch toggle checkboxes.
+  - One-click "Stage All", "Unstage All", and safe file discard with confirmation prompts.
+- **Syntax Colored Diff Viewer**:
+  - Line-by-line diff inspector highlighting additions (`+ green`), deletions (`- red`), and hunks (`@@ cyan`).
+- **Commit & Push Flow**:
+  - Conventional commit subject & multi-line description editor.
+  - "Commit" and "Commit & Push" instant action buttons.
+- **Commit History & Log Inspector**:
+  - Formatted commit table with hash, author, relative time, subject, and detailed patch viewer.
+- **Branch Management**:
+  - View local and remote branches, switch branches, create new branches, and delete branches.
+- **Stash Management**:
+  - Save stashes with custom messages, apply, pop, and drop stashes.
+- **Remote Repositories**:
+  - Inspect fetch & push URLs, add new remotes, and remove remotes.
+- **Safe Sandboxed Git Console**:
+  - Execute Git commands with real-time output and live repository status synchronization.
+- **External Tool Integration**:
+  - Direct launch shortcuts to open active repository in **File Explorer**, **Visual Studio Code**, or **PowerShell**.
 
 ---
 
-## 4. Running the Application
+## 3. How to Run
 
-### Restore and Run with .NET 9
-
+### Run the Native Desktop App:
 ```bash
 cd LGMS
-dotnet restore
-dotnet build
-dotnet run
+dotnet run --project LGMS.Desktop/LGMS.Desktop.csproj
 ```
 
-Open your browser at:
-```text
-http://localhost:5000  (or https://localhost:5001)
-```
-
-### Publish for Production
-
+### Run the ASP.NET Core MVC Web App:
 ```bash
-dotnet publish -c Release -o ./publish
+cd LGMS
+dotnet run --project LGMS.csproj
 ```
+Open browser at `http://localhost:5000` (or `https://localhost:5001`).
 
----
-
-## 5. Key Features
-
-- **Workspace Selection & Scanning**: Fast recursive directory enumeration without external scripting.
-- **Safety First**: Discarding files, force-pushing, and branch deletion require explicit confirmation.
-- **Unified & Side-by-Side Diff Viewer**: Real git diff coloring for added (`+`), removed (`-`), and hunk (`@@`) lines.
-- **Commit & Push Flow**: Conventional commit message box, staged change checklist, and one-click Commit & Push.
-- **Pull Conflict Prevention**: Warns if dirty changes exist before pulling.
-- **Dark & Light Themes**: Responsive IDE layout with CSS variables.
+### Build Entire Solution:
+```bash
+cd LGMS
+dotnet build LGMS.sln
+```

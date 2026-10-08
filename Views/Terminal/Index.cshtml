@@ -62,7 +62,7 @@
 
 @section Scripts {
 <script>
-    const repoPath = '@Html.Raw(repo.Path)';
+    const repoPath = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(repo.Path));
     const terminalOutput = document.getElementById('terminal-output');
     const terminalInput = document.getElementById('terminal-input');
 

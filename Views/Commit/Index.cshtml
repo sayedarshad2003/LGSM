@@ -81,7 +81,7 @@
 
 @section Scripts {
 <script>
-    const repoPath = '@Html.Raw(repo.Path)';
+    const repoPath = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(repo.Path));
 
     async function inspectCommit(hash) {
         const body = document.getElementById('inspector-body');

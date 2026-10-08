@@ -29,13 +29,13 @@
 
             <!-- Quick Action Toolbar -->
             <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="gitFetch('@repo.Path')">
+                <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="gitFetch()">
                     <i class="bi bi-cloud-download"></i> <span>Fetch</span>
                 </button>
-                <button class="btn btn-outline-primary d-flex align-items-center gap-1" onclick="gitPull('@repo.Path')">
+                <button class="btn btn-outline-primary d-flex align-items-center gap-1" onclick="gitPull()">
                     <i class="bi bi-arrow-down-circle"></i> <span>Pull</span>
                 </button>
-                <button class="btn btn-outline-success d-flex align-items-center gap-1" onclick="gitPush('@repo.Path')">
+                <button class="btn btn-outline-success d-flex align-items-center gap-1" onclick="gitPush()">
                     <i class="bi bi-arrow-up-circle"></i> <span>Push</span>
                 </button>
                 <a href="/repository/@repo.Id/changes?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-primary d-flex align-items-center gap-1">
@@ -187,7 +187,9 @@
 
 @section Scripts {
 <script>
-    async function gitFetch(repoPath) {
+    const repoPath = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(repo.Path));
+
+    async function gitFetch() {
         LGMS.showLoading("Fetching remotes...", "git fetch --all --prune");
         try {
             const res = await fetch('/api/git/fetch', {
@@ -209,7 +211,7 @@
         }
     }
 
-    async function gitPull(repoPath) {
+    async function gitPull() {
         LGMS.showLoading("Pulling changes...", "git pull");
         try {
             const res = await fetch('/api/git/pull', {
@@ -250,7 +252,7 @@
         }
     }
 
-    async function gitPush(repoPath) {
+    async function gitPush() {
         LGMS.showLoading("Pushing to remote...", "git push");
         try {
             const res = await fetch('/api/git/push', {

@@ -1,0 +1,22 @@
+<Application x:Class="LGMS.Desktop.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:common="clr-namespace:LGMS.Desktop.Common">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/DarkTheme.xaml" />
+                <ResourceDictionary Source="Themes/Icons.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <common:BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <common:BooleanToVisibilityConverter x:Key="InverseBoolToVis" Invert="True" />
+            <common:NullToVisibilityConverter x:Key="NullToVis" />
+            <common:NullToVisibilityConverter x:Key="NotNullToVis" Invert="True" />
+            <common:CountToVisibilityConverter x:Key="CountToVis" />
+            <common:ChangeStatusToBrushConverter x:Key="StatusToBrush" />
+            <common:DiffLineToBrushConverter x:Key="DiffLineBg" IsForeground="False" />
+            <common:DiffLineToBrushConverter x:Key="DiffLineFg" IsForeground="True" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

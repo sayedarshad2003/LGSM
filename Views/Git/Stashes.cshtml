@@ -72,7 +72,7 @@
 
 @section Scripts {
 <script>
-    const repoPath = '@Html.Raw(repo.Path)';
+    const repoPath = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(repo.Path));
 
     async function promptSaveStash() {
         const msg = prompt("Enter optional stash description message:", "WIP on " + new Date().toLocaleTimeString());

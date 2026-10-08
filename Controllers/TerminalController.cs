@@ -28,17 +28,18 @@ public class TerminalController : Controller
     [HttpPost("api/git/terminal/run")]
     public async Task<IActionResult> Run([FromBody] TerminalCommandRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Path) || !Directory.Exists(request.Path))
+        var repoPath = !string.IsNullOrWhiteSpace(request?.Path) ? _scanner.NormalizePath(request.Path) : string.Empty;
+        if (string.IsNullOrWhiteSpace(repoPath) || !Directory.Exists(repoPath))
         {
             return BadRequest(new { success = false, error = "Invalid repository path." });
         }
 
-        if (string.IsNullOrWhiteSpace(request.Command))
+        if (string.IsNullOrWhiteSpace(request?.Command))
         {
             return BadRequest(new { success = false, error = "Command cannot be empty." });
         }
 
-        var result = await _gitService.RunCommandAsync(request.Path, request.Command);
+        var result = await _gitService.RunCommandAsync(repoPath, request.Command);
         return Json(result);
     }
 

@@ -77,7 +77,7 @@
 
 @section Scripts {
 <script>
-    const repoPath = '@Html.Raw(repo.Path)';
+    const repoPath = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(repo.Path));
 
     async function promptAddRemote() {
         const name = prompt("Remote Name (e.g. origin):", "origin");
