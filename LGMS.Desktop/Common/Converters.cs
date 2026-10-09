@@ -23,6 +23,47 @@ public class BooleanToVisibilityConverter : IValueConverter
     }
 }
 
+public class IntEqualsToVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value != null && parameter != null)
+        {
+            if (int.TryParse(value.ToString(), out int current) && int.TryParse(parameter.ToString(), out int target))
+            {
+                return current == target ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+        return Visibility.Collapsed;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class IntEqualsToBooleanConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value != null && parameter != null)
+        {
+            if (int.TryParse(value.ToString(), out int current) && int.TryParse(parameter.ToString(), out int target))
+            {
+                return current == target;
+            }
+        }
+        return false;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (value is bool b && b && parameter != null && int.TryParse(parameter.ToString(), out int target))
+        {
+            return target;
+        }
+        return Binding.DoNothing;
+    }
+}
+
 public class NullToVisibilityConverter : IValueConverter
 {
     public bool Invert { get; set; }
@@ -86,13 +127,12 @@ public class ChangeStatusToBrushConverter : IValueConverter
 
 public class DiffLineToBrushConverter : IValueConverter
 {
-    private static readonly SolidColorBrush AdditionBg = new(Color.FromArgb(50, 34, 197, 94));
-    private static readonly SolidColorBrush AdditionFg = new(Color.FromRgb(74, 222, 128));
-    private static readonly SolidColorBrush DeletionBg = new(Color.FromArgb(50, 239, 68, 68));
-    private static readonly SolidColorBrush DeletionFg = new(Color.FromRgb(248, 113, 113));
-    private static readonly SolidColorBrush HunkBg = new(Color.FromArgb(40, 56, 189, 248));
-    private static readonly SolidColorBrush HunkFg = new(Color.FromRgb(125, 211, 252));
-    private static readonly SolidColorBrush NormalFg = new(Color.FromRgb(226, 232, 240));
+    private static readonly SolidColorBrush AdditionBg = new(Color.FromArgb(40, 34, 197, 94));
+    private static readonly SolidColorBrush AdditionFg = new(Color.FromRgb(22, 163, 74));
+    private static readonly SolidColorBrush DeletionBg = new(Color.FromArgb(40, 239, 68, 68));
+    private static readonly SolidColorBrush DeletionFg = new(Color.FromRgb(220, 38, 38));
+    private static readonly SolidColorBrush HunkBg = new(Color.FromArgb(35, 14, 165, 233));
+    private static readonly SolidColorBrush HunkFg = new(Color.FromRgb(2, 132, 199));
     private static readonly SolidColorBrush TransparentBg = new(Colors.Transparent);
 
     public bool IsForeground { get; set; }
@@ -117,7 +157,13 @@ public class DiffLineToBrushConverter : IValueConverter
             return IsForeground ? HunkFg : HunkBg;
         }
 
-        return IsForeground ? NormalFg : TransparentBg;
+        if (IsForeground)
+        {
+            // Default text foreground will use dynamic resource in control
+            return new SolidColorBrush(Color.FromRgb(100, 116, 139));
+        }
+
+        return TransparentBg;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();

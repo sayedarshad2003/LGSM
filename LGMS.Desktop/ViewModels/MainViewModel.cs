@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using LGMS.Desktop.Common;
+using LGMS.Desktop.Services;
 using LGMS.Models;
 using LGMS.Services;
 using Microsoft.Win32;
@@ -15,6 +16,7 @@ public class MainViewModel : ObservableObject
     private readonly IGitService _gitService;
     private readonly IRepositoryScanner _scanner;
     private readonly IProcessService _processService;
+    private readonly ISettingsService _settingsService;
 
     private string _workspacePath = string.Empty;
     private string _searchFilter = string.Empty;
@@ -47,11 +49,23 @@ public class MainViewModel : ObservableObject
     private string _gitVersion = "Checking...";
     private bool _isGitInstalled;
 
-    public MainViewModel(IGitService gitService, IRepositoryScanner scanner, IProcessService processService)
+    // Settings fields
+    private string _currentTheme = "dark";
+    private string _defaultWorkspacePath = string.Empty;
+    private string _gitUserName = string.Empty;
+    private string _gitUserEmail = string.Empty;
+    private bool _autoScanOnStartup = true;
+
+    public MainViewModel(
+        IGitService gitService,
+        IRepositoryScanner scanner,
+        IProcessService processService,
+        ISettingsService settingsService)
     {
         _gitService = gitService;
         _scanner = scanner;
         _processService = processService;
+        _settingsService = settingsService;
 
         AllRepositories = new ObservableCollection<Repository>();
         FilteredRepositories = new ObservableCollection<Repository>();
@@ -95,6 +109,10 @@ public class MainViewModel : ObservableObject
         OpenInExplorerCommand = new RelayCommand(OpenInExplorer);
         OpenInVsCodeCommand = new RelayCommand(OpenInVsCode);
         OpenTerminalCommand = new RelayCommand(OpenExternalTerminal);
+
+        ToggleThemeCommand = new RelayCommand(ToggleTheme);
+        SaveSettingsCommand = new RelayCommand(SaveSettings);
+        SaveGitConfigCommand = new AsyncRelayCommand(SaveGitConfigAsync);
 
         _ = InitializeAsync();
     }
@@ -176,8 +194,16 @@ public class MainViewModel : ObservableObject
     public GitStatus? CurrentStatus
     {
         get => _currentStatus;
-        set => SetProperty(ref _currentStatus, value);
+        set
+        {
+            if (SetProperty(ref _currentStatus, value))
+            {
+                OnPropertyChanged(nameof(HasChanges));
+            }
+        }
     }
+
+    public bool HasChanges => _currentStatus != null && _currentStatus.Changes.Count > 0;
 
     public bool IsBusy
     {
@@ -206,7 +232,17 @@ public class MainViewModel : ObservableObject
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
-        set => SetProperty(ref _selectedTabIndex, value);
+        set
+        {
+            if (SetProperty(ref _selectedTabIndex, value))
+            {
+                // Reload tab specific view if necessary
+                if (value == 0 && SelectedChange != null)
+                {
+                    _ = LoadDiffForSelectedChangeAsync();
+                }
+            }
+        }
     }
 
     public string CommitSubject
@@ -281,6 +317,43 @@ public class MainViewModel : ObservableObject
         set => SetProperty(ref _isGitInstalled, value);
     }
 
+    // Settings Properties
+    public string CurrentTheme
+    {
+        get => _currentTheme;
+        set
+        {
+            if (SetProperty(ref _currentTheme, value))
+            {
+                ThemeManager.ApplyTheme(value);
+            }
+        }
+    }
+
+    public string DefaultWorkspacePath
+    {
+        get => _defaultWorkspacePath;
+        set => SetProperty(ref _defaultWorkspacePath, value);
+    }
+
+    public string GitUserName
+    {
+        get => _gitUserName;
+        set => SetProperty(ref _gitUserName, value);
+    }
+
+    public string GitUserEmail
+    {
+        get => _gitUserEmail;
+        set => SetProperty(ref _gitUserEmail, value);
+    }
+
+    public bool AutoScanOnStartup
+    {
+        get => _autoScanOnStartup;
+        set => SetProperty(ref _autoScanOnStartup, value);
+    }
+
     // Commands
     public ICommand BrowseFolderCommand { get; }
     public ICommand ScanWorkspaceCommand { get; }
@@ -311,11 +384,25 @@ public class MainViewModel : ObservableObject
     public ICommand OpenInExplorerCommand { get; }
     public ICommand OpenInVsCodeCommand { get; }
     public ICommand OpenTerminalCommand { get; }
+    public ICommand ToggleThemeCommand { get; }
+    public ICommand SaveSettingsCommand { get; }
+    public ICommand SaveGitConfigCommand { get; }
 
     private async Task InitializeAsync()
     {
         try
         {
+            // Load saved settings
+            var savedSettings = _settingsService.LoadSettings();
+            CurrentTheme = savedSettings.Theme;
+            DefaultWorkspacePath = string.IsNullOrWhiteSpace(savedSettings.WorkingFolder)
+                ? @"e:\Asp.NET Work\Test Project"
+                : savedSettings.WorkingFolder;
+            AutoScanOnStartup = savedSettings.AutoScanRepositories;
+
+            ThemeManager.ApplyTheme(CurrentTheme);
+
+            // Check Git
             var res = await _processService.ExecuteAsync("git", new[] { "--version" }, Environment.CurrentDirectory);
             if (res.Success)
             {
@@ -329,11 +416,17 @@ public class MainViewModel : ObservableObject
                 SetNotification("Git executable was not found. Please install Git.", "error");
             }
 
-            // Default to parent or current workspace
-            var defaultPath = @"e:\Asp.NET Work\Test Project";
-            if (Directory.Exists(defaultPath))
+            // Load Global Git Config user.name / user.email
+            var nameRes = await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.name" }, Environment.CurrentDirectory);
+            if (nameRes.Success) GitUserName = nameRes.StandardOutput.Trim();
+
+            var emailRes = await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.email" }, Environment.CurrentDirectory);
+            if (emailRes.Success) GitUserEmail = emailRes.StandardOutput.Trim();
+
+            // Set initial workspace path
+            if (Directory.Exists(DefaultWorkspacePath))
             {
-                WorkspacePath = defaultPath;
+                WorkspacePath = DefaultWorkspacePath;
             }
             else
             {
@@ -344,6 +437,38 @@ public class MainViewModel : ObservableObject
         {
             SetNotification($"Initialization error: {ex.Message}", "error");
         }
+    }
+
+    public void ToggleTheme()
+    {
+        CurrentTheme = CurrentTheme == "dark" ? "light" : "dark";
+        SaveSettings();
+    }
+
+    public void SaveSettings()
+    {
+        var settings = new WorkspaceSettings
+        {
+            WorkingFolder = DefaultWorkspacePath,
+            Theme = CurrentTheme,
+            AutoScanRepositories = AutoScanOnStartup,
+            RememberWorkingFolder = true
+        };
+        _settingsService.SaveSettings(settings);
+        SetNotification("Settings saved successfully.", "success");
+    }
+
+    private async Task SaveGitConfigAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(GitUserName))
+        {
+            await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.name", GitUserName.Trim() }, Environment.CurrentDirectory);
+        }
+        if (!string.IsNullOrWhiteSpace(GitUserEmail))
+        {
+            await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.email", GitUserEmail.Trim() }, Environment.CurrentDirectory);
+        }
+        SetNotification("Git author credentials updated globally.", "success");
     }
 
     private Task BrowseFolderAsync()
@@ -494,7 +619,7 @@ public class MainViewModel : ObservableObject
     private async Task LoadCommitsAsync()
     {
         if (ActiveRepository == null) return;
-        var res = await _gitService.GetCommitsAsync(ActiveRepository.Path, 40);
+        var res = await _gitService.GetCommitsAsync(ActiveRepository.Path, 50);
         Commits.Clear();
 
         if (res.Success && !string.IsNullOrWhiteSpace(res.Output))
@@ -516,6 +641,11 @@ public class MainViewModel : ObservableObject
                         Body = parts.Length > 7 ? parts[7] : string.Empty
                     });
                 }
+            }
+
+            if (SelectedCommit == null && Commits.Count > 0)
+            {
+                SelectedCommit = Commits[0];
             }
         }
     }
@@ -651,7 +781,7 @@ public class MainViewModel : ObservableObject
         DiffLines.Clear();
         if (string.IsNullOrWhiteSpace(diff))
         {
-            DiffLines.Add(new DiffLineItem { Text = "(No diff or binary file)", LineType = "context" });
+            DiffLines.Add(new DiffLineItem { Text = "(No differences or newly added empty file)", LineType = "context" });
             return;
         }
 
@@ -666,7 +796,6 @@ public class MainViewModel : ObservableObject
             if (line.StartsWith("@@"))
             {
                 item.LineType = "header";
-                // parse @@ -old,count +new,count @@
                 var match = System.Text.RegularExpressions.Regex.Match(line, @"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@");
                 if (match.Success)
                 {

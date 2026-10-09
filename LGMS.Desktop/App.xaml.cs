@@ -1,4 +1,5 @@
 using System.Windows;
+using LGMS.Desktop.Services;
 using LGMS.Desktop.ViewModels;
 using LGMS.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,7 @@ public partial class App : Application
             builder.SetMinimumLevel(LogLevel.Information);
         });
 
+        services.AddSingleton<ISettingsService, SettingsService>();
         services.AddSingleton<IProcessService, ProcessService>();
         services.AddSingleton<IRepositoryScanner, RepositoryScanner>();
         services.AddSingleton<IGitService, GitService>();

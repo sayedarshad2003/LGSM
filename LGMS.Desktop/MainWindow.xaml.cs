@@ -14,7 +14,6 @@ public partial class MainWindow : Window
         InitializeComponent();
         ViewModel = viewModel;
         DataContext = viewModel;
-        UpdateTabVisibility(0);
     }
 
     private void OnTabSelected(object sender, RoutedEventArgs e)
@@ -22,18 +21,7 @@ public partial class MainWindow : Window
         if (sender is RadioButton rb && rb.Tag != null && int.TryParse(rb.Tag.ToString(), out int tabIndex))
         {
             ViewModel.SelectedTabIndex = tabIndex;
-            UpdateTabVisibility(tabIndex);
         }
-    }
-
-    private void UpdateTabVisibility(int tabIndex)
-    {
-        // Explicit tab panel visibility
-        if (TabHistoryGrid != null) TabHistoryGrid.Visibility = (tabIndex == 1) ? Visibility.Visible : Visibility.Collapsed;
-        if (TabBranchesGrid != null) TabBranchesGrid.Visibility = (tabIndex == 2) ? Visibility.Visible : Visibility.Collapsed;
-        if (TabStashesGrid != null) TabStashesGrid.Visibility = (tabIndex == 3) ? Visibility.Visible : Visibility.Collapsed;
-        if (TabRemotesGrid != null) TabRemotesGrid.Visibility = (tabIndex == 4) ? Visibility.Visible : Visibility.Collapsed;
-        if (TabTerminalGrid != null) TabTerminalGrid.Visibility = (tabIndex == 5) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnCreateBranchClicked(object sender, RoutedEventArgs e)

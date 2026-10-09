@@ -11,6 +11,8 @@
 
             <common:BooleanToVisibilityConverter x:Key="BoolToVis" />
             <common:BooleanToVisibilityConverter x:Key="InverseBoolToVis" Invert="True" />
+            <common:IntEqualsToVisibilityConverter x:Key="IntEqualsToVis" />
+            <common:IntEqualsToBooleanConverter x:Key="IntEqualsToBool" />
             <common:NullToVisibilityConverter x:Key="NullToVis" />
             <common:NullToVisibilityConverter x:Key="NotNullToVis" Invert="True" />
             <common:CountToVisibilityConverter x:Key="CountToVis" />

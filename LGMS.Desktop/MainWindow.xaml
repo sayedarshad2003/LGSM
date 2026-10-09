@@ -6,11 +6,11 @@
         xmlns:viewmodels="clr-namespace:LGMS.Desktop.ViewModels"
         mc:Ignorable="d"
         Title="LGMS — Local Git Management System"
-        Height="880" Width="1440"
+        Height="890" Width="1440"
         MinHeight="680" MinWidth="1100"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BgDarkestBrush}"
-        Foreground="{StaticResource TextPrimaryBrush}"
+        Background="{DynamicResource BgDarkestBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
         FontFamily="Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif">
 
     <Grid>
@@ -24,7 +24,7 @@
         </Grid.RowDefinitions>
 
         <!-- ================= TOP TOOLBAR & REPO SELECTOR ================= -->
-        <Border Grid.Row="0" Background="{StaticResource BgDarkBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="0,0,0,1" Padding="14,10">
+        <Border Grid.Row="0" Background="{DynamicResource BgDarkBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="0,0,0,1" Padding="14,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -34,37 +34,37 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Brand Logo & Badge -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <Border Background="{StaticResource AccentPrimaryBrush}" CornerRadius="6" Width="30" Height="30" Margin="0,0,10,0">
-                        <Path Data="{StaticResource IconBranch}" Fill="#090d16" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,18,0">
+                    <Border Background="{DynamicResource AccentPrimaryBrush}" CornerRadius="7" Width="32" Height="32" Margin="0,0,10,0">
+                        <Path Data="{StaticResource IconBranch}" Fill="#ffffff" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="LGMS" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock Text="Desktop v2.0" FontSize="10" Foreground="{StaticResource AccentPrimaryBrush}" FontWeight="SemiBold" Margin="0,-2,0,0" />
+                        <TextBlock Text="LGMS" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock Text="Desktop .NET 9" FontSize="10" Foreground="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" Margin="0,-2,0,0" />
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Workspace Directory Selector -->
-                <Border Grid.Column="1" Background="{StaticResource BgInputBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="6,3" Margin="0,0,16,0" VerticalAlignment="Center">
+                <Border Grid.Column="1" Background="{DynamicResource BgInputBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="6,3" Margin="0,0,16,0" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
-                        <Path Data="{StaticResource IconFolder}" Fill="{StaticResource TextMutedBrush}" Width="14" Height="14" Stretch="Uniform" Margin="4,0,8,0" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding WorkspacePath}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Width="260" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding WorkspacePath}" />
-                        <Button Content="Browse..." Style="{StaticResource SecondaryButton}" Command="{Binding BrowseFolderCommand}" Padding="8,3" FontSize="11" Margin="8,0,2,0" />
-                        <Button ToolTip="Rescan workspace" Style="{StaticResource SecondaryButton}" Command="{Binding ScanWorkspaceCommand}" Padding="6,3" Margin="4,0,0,0">
-                            <Path Data="{StaticResource IconRefresh}" Fill="{StaticResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" />
+                        <Path Data="{StaticResource IconFolder}" Fill="{DynamicResource TextMutedBrush}" Width="14" Height="14" Stretch="Uniform" Margin="4,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding WorkspacePath}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Width="260" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" ToolTip="{Binding WorkspacePath}" />
+                        <Button Content="Browse..." Style="{DynamicResource SecondaryButton}" Command="{Binding BrowseFolderCommand}" Padding="8,3" FontSize="11" Margin="8,0,2,0" />
+                        <Button ToolTip="Rescan workspace" Style="{DynamicResource SecondaryButton}" Command="{Binding ScanWorkspaceCommand}" Padding="6,3" Margin="4,0,0,0">
+                            <Path Data="{StaticResource IconRefresh}" Fill="{DynamicResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" />
                         </Button>
                     </StackPanel>
                 </Border>
 
                 <!-- Active Repo Banner & Quick Actions -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding HasActiveRepo, Converter={StaticResource BoolToVis}}">
-                    <Border Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,12,0">
+                    <Border Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="10,5" Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding ActiveRepository.Name}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                            <Border Background="#22334a" CornerRadius="4" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ActiveRepository.Name}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                            <Border Background="#1e3a8a" CornerRadius="4" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
                                 <StackPanel Orientation="Horizontal">
-                                    <Path Data="{StaticResource IconBranch}" Fill="{StaticResource AccentPrimaryBrush}" Width="11" Height="11" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center" />
-                                    <TextBlock Text="{Binding ActiveRepository.CurrentBranch}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource AccentPrimaryBrush}" VerticalAlignment="Center" />
+                                    <Path Data="{StaticResource IconBranch}" Fill="#93c5fd" Width="11" Height="11" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding ActiveRepository.CurrentBranch}" FontSize="11" FontWeight="SemiBold" Foreground="#93c5fd" VerticalAlignment="Center" />
                                 </StackPanel>
                             </Border>
                             <!-- Ahead / Behind Pills -->
@@ -81,40 +81,48 @@
 
                     <!-- Git Sync Action Buttons -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button ToolTip="Fetch remote changes" Style="{StaticResource SecondaryButton}" Command="{Binding FetchCommand}" Margin="0,0,6,0">
+                        <Button ToolTip="Fetch remote changes" Style="{DynamicResource SecondaryButton}" Command="{Binding FetchCommand}" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource IconFetch}" Fill="{StaticResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <Path Data="{StaticResource IconFetch}" Fill="{DynamicResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
                                 <TextBlock Text="Fetch" FontSize="12" />
                             </StackPanel>
                         </Button>
-                        <Button ToolTip="Pull changes from remote" Style="{StaticResource SecondaryButton}" Command="{Binding PullCommand}" Margin="0,0,6,0">
+                        <Button ToolTip="Pull changes from remote" Style="{DynamicResource SecondaryButton}" Command="{Binding PullCommand}" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource IconPull}" Fill="{StaticResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <Path Data="{StaticResource IconPull}" Fill="{DynamicResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
                                 <TextBlock Text="Pull" FontSize="12" />
                             </StackPanel>
                         </Button>
-                        <Button ToolTip="Push commits to remote" Style="{StaticResource SecondaryButton}" Command="{Binding PushCommand}" Margin="0,0,6,0">
+                        <Button ToolTip="Push commits to remote" Style="{DynamicResource SecondaryButton}" Command="{Binding PushCommand}" Margin="0,0,6,0">
                             <StackPanel Orientation="Horizontal">
-                                <Path Data="{StaticResource IconPush}" Fill="{StaticResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                <Path Data="{StaticResource IconPush}" Fill="{DynamicResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
                                 <TextBlock Text="Push" FontSize="12" />
                             </StackPanel>
                         </Button>
-                        <Button ToolTip="Refresh status" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshCommand}" Margin="0,0,6,0" Padding="8,6">
-                            <Path Data="{StaticResource IconRefresh}" Fill="{StaticResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" />
+                        <Button ToolTip="Refresh status" Style="{DynamicResource SecondaryButton}" Command="{Binding RefreshCommand}" Margin="0,0,6,0" Padding="8,6">
+                            <Path Data="{StaticResource IconRefresh}" Fill="{DynamicResource TextPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" />
                         </Button>
                     </StackPanel>
                 </StackPanel>
 
-                <!-- External Launchers (VS Code, Explorer, Terminal) -->
+                <!-- Right Toolset: Theme Toggle + External Launchers -->
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button ToolTip="Open in Visual Studio Code" Style="{StaticResource SecondaryButton}" Command="{Binding OpenInVsCodeCommand}" Margin="0,0,6,0" Padding="8,6">
-                        <Path Data="{StaticResource IconVsCode}" Fill="{StaticResource AccentPrimaryBrush}" Width="14" Height="14" Stretch="Uniform" />
+                    <!-- Theme Toggle Button (Light / Dark) -->
+                    <Button ToolTip="Toggle Light / Dark Theme" Style="{DynamicResource SecondaryButton}" Command="{Binding ToggleThemeCommand}" Margin="0,0,8,0" Padding="8,6">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="{StaticResource IconSun}" Fill="{DynamicResource AccentAmberBrush}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,4,0" />
+                            <TextBlock Text="{Binding CurrentTheme}" FontSize="11" FontWeight="SemiBold" />
+                        </StackPanel>
                     </Button>
-                    <Button ToolTip="Open in File Explorer" Style="{StaticResource SecondaryButton}" Command="{Binding OpenInExplorerCommand}" Margin="0,0,6,0" Padding="8,6">
-                        <Path Data="{StaticResource IconFolder}" Fill="{StaticResource TextPrimaryBrush}" Width="14" Height="14" Stretch="Uniform" />
+
+                    <Button ToolTip="Open in Visual Studio Code" Style="{DynamicResource SecondaryButton}" Command="{Binding OpenInVsCodeCommand}" Margin="0,0,6,0" Padding="8,6">
+                        <Path Data="{StaticResource IconVsCode}" Fill="{DynamicResource AccentPrimaryBrush}" Width="14" Height="14" Stretch="Uniform" />
                     </Button>
-                    <Button ToolTip="Open External PowerShell Terminal" Style="{StaticResource SecondaryButton}" Command="{Binding OpenTerminalCommand}" Padding="8,6">
-                        <Path Data="{StaticResource IconTerminal}" Fill="{StaticResource TextPrimaryBrush}" Width="14" Height="14" Stretch="Uniform" />
+                    <Button ToolTip="Open in File Explorer" Style="{DynamicResource SecondaryButton}" Command="{Binding OpenInExplorerCommand}" Margin="0,0,6,0" Padding="8,6">
+                        <Path Data="{StaticResource IconFolder}" Fill="{DynamicResource TextPrimaryBrush}" Width="14" Height="14" Stretch="Uniform" />
+                    </Button>
+                    <Button ToolTip="Open External PowerShell Terminal" Style="{DynamicResource SecondaryButton}" Command="{Binding OpenTerminalCommand}" Padding="8,6">
+                        <Path Data="{StaticResource IconTerminal}" Fill="{DynamicResource TextPrimaryBrush}" Width="14" Height="14" Stretch="Uniform" />
                     </Button>
                 </StackPanel>
             </Grid>
@@ -131,7 +139,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- LEFT SIDEBAR: REPOSITORY LIST -->
-            <Border Grid.Column="0" Background="{StaticResource BgDarkBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Background="{DynamicResource BgDarkBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="0,0,1,0">
                 <Grid Margin="12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -141,21 +149,14 @@
 
                     <!-- Header -->
                     <Grid Grid.Row="0" Margin="0,0,0,10">
-                        <TextBlock Text="REPOSITORIES" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
-                        <Border Background="{StaticResource BgCardBrush}" CornerRadius="10" Padding="6,1" HorizontalAlignment="Right">
-                            <TextBlock Text="{Binding FilteredRepositories.Count}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" />
+                        <TextBlock Text="REPOSITORIES" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+                        <Border Background="{DynamicResource BgCardBrush}" CornerRadius="10" Padding="6,1" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding FilteredRepositories.Count}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold" />
                         </Border>
                     </Grid>
 
                     <!-- Filter Search Box -->
-                    <TextBox Grid.Row="1" Text="{Binding SearchFilter, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10" Tag="Filter repositories...">
-                        <TextBox.Style>
-                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                                <Setter Property="Padding" Value="8,5" />
-                                <Setter Property="FontSize" Value="12" />
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
+                    <TextBox Grid.Row="1" Text="{Binding SearchFilter, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10" Tag="Filter repositories..." />
 
                     <!-- Repositories List -->
                     <ListBox Grid.Row="2"
@@ -170,10 +171,10 @@
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
                                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                            <Path Data="{StaticResource IconBranch}" Fill="{StaticResource AccentPrimaryBrush}" Width="9" Height="9" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center" />
-                                            <TextBlock Text="{Binding CurrentBranch}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="150" />
+                                            <Path Data="{StaticResource IconBranch}" Fill="{DynamicResource AccentPrimaryBrush}" Width="9" Height="9" Stretch="Uniform" Margin="0,0,4,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding CurrentBranch}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="150" />
                                         </StackPanel>
                                     </StackPanel>
 
@@ -194,10 +195,10 @@
             </Border>
 
             <!-- Splitter -->
-            <GridSplitter Grid.Column="1" Width="3" Background="{StaticResource BorderDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+            <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
 
-            <!-- RIGHT MAIN PANEL -->
-            <Grid Grid.Column="2" Background="{StaticResource BgDarkestBrush}">
+            <!-- RIGHT MAIN WORKSPACE -->
+            <Grid Grid.Column="2" Background="{DynamicResource BgDarkestBrush}">
                 <Grid.RowDefinitions>
                     <!-- Nav Tabs -->
                     <RowDefinition Height="Auto" />
@@ -206,27 +207,27 @@
                 </Grid.RowDefinitions>
 
                 <!-- Navigation Tabs Header -->
-                <Border Grid.Row="0" Background="{StaticResource BgDarkBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="0,0,0,1" Padding="14,0">
+                <Border Grid.Row="0" Background="{DynamicResource BgDarkBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="0,0,0,1" Padding="14,0">
                     <StackPanel Orientation="Horizontal">
                         <!-- Tab 0: Changes -->
-                        <RadioButton GroupName="NavTabs" Content="⚡ Working Changes" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource BoolToVis}, ConverterParameter=0}" Tag="0" Click="OnTabSelected" Style="{x:Null}">
+                        <RadioButton GroupName="NavTabs" Tag="0" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=0}" Click="OnTabSelected" Style="{x:Null}">
                             <RadioButton.Template>
                                 <ControlTemplate TargetType="RadioButton">
                                     <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="⚡ Changes" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" x:Name="txt" />
-                                            <Border CornerRadius="8" Background="{StaticResource BgCardBrush}" Padding="6,1" Margin="6,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding DataContext.CurrentStatus.Changes.Count, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="{StaticResource AccentPrimaryBrush}" FontWeight="Bold" />
+                                            <TextBlock Text="⚡ Changes" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
+                                            <Border CornerRadius="8" Background="{DynamicResource BgCardBrush}" Padding="6,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DataContext.CurrentStatus.Changes.Count, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue=0}" FontSize="11" Foreground="{DynamicResource AccentPrimaryBrush}" FontWeight="Bold" />
                                             </Border>
                                         </StackPanel>
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentPrimaryBrush}" />
-                                            <Setter TargetName="txt" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="txt" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -234,16 +235,19 @@
                         </RadioButton>
 
                         <!-- Tab 1: History -->
-                        <RadioButton GroupName="NavTabs" Tag="1" Click="OnTabSelected" Style="{x:Null}">
+                        <RadioButton GroupName="NavTabs" Tag="1" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=1}" Click="OnTabSelected" Style="{x:Null}">
                             <RadioButton.Template>
                                 <ControlTemplate TargetType="RadioButton">
                                     <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
-                                        <TextBlock Text="📜 History &amp; Commits" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" x:Name="txt" />
+                                        <TextBlock Text="📜 History &amp; Commits" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentPrimaryBrush}" />
-                                            <Setter TargetName="txt" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -251,16 +255,19 @@
                         </RadioButton>
 
                         <!-- Tab 2: Branches -->
-                        <RadioButton GroupName="NavTabs" Tag="2" Click="OnTabSelected" Style="{x:Null}">
+                        <RadioButton GroupName="NavTabs" Tag="2" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=2}" Click="OnTabSelected" Style="{x:Null}">
                             <RadioButton.Template>
                                 <ControlTemplate TargetType="RadioButton">
                                     <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
-                                        <TextBlock Text="🌿 Branches" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" x:Name="txt" />
+                                        <TextBlock Text="🌿 Branches" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentPrimaryBrush}" />
-                                            <Setter TargetName="txt" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -268,16 +275,19 @@
                         </RadioButton>
 
                         <!-- Tab 3: Stashes -->
-                        <RadioButton GroupName="NavTabs" Tag="3" Click="OnTabSelected" Style="{x:Null}">
+                        <RadioButton GroupName="NavTabs" Tag="3" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=3}" Click="OnTabSelected" Style="{x:Null}">
                             <RadioButton.Template>
                                 <ControlTemplate TargetType="RadioButton">
                                     <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
-                                        <TextBlock Text="📦 Stashes" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" x:Name="txt" />
+                                        <TextBlock Text="📦 Stashes" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentPrimaryBrush}" />
-                                            <Setter TargetName="txt" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -285,16 +295,19 @@
                         </RadioButton>
 
                         <!-- Tab 4: Remotes -->
-                        <RadioButton GroupName="NavTabs" Tag="4" Click="OnTabSelected" Style="{x:Null}">
+                        <RadioButton GroupName="NavTabs" Tag="4" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=4}" Click="OnTabSelected" Style="{x:Null}">
                             <RadioButton.Template>
                                 <ControlTemplate TargetType="RadioButton">
                                     <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
-                                        <TextBlock Text="🌐 Remotes" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" x:Name="txt" />
+                                        <TextBlock Text="🌐 Remotes" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentPrimaryBrush}" />
-                                            <Setter TargetName="txt" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -302,16 +315,39 @@
                         </RadioButton>
 
                         <!-- Tab 5: Terminal -->
-                        <RadioButton GroupName="NavTabs" Tag="5" Click="OnTabSelected" Style="{x:Null}">
+                        <RadioButton GroupName="NavTabs" Tag="5" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=5}" Click="OnTabSelected" Style="{x:Null}">
                             <RadioButton.Template>
                                 <ControlTemplate TargetType="RadioButton">
                                     <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
-                                        <TextBlock Text="💻 Git Console" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" x:Name="txt" />
+                                        <TextBlock Text="💻 Git Console" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsChecked" Value="True">
-                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{StaticResource AccentPrimaryBrush}" />
-                                            <Setter TargetName="txt" Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </RadioButton.Template>
+                        </RadioButton>
+
+                        <!-- Tab 6: Settings -->
+                        <RadioButton GroupName="NavTabs" Tag="6" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=6}" Click="OnTabSelected" Style="{x:Null}">
+                            <RadioButton.Template>
+                                <ControlTemplate TargetType="RadioButton">
+                                    <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
+                                        <TextBlock Text="⚙️ Settings" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -320,9 +356,10 @@
                     </StackPanel>
                 </Border>
 
-                <!-- TAB CONTENT PAGES -->
+                <!-- ================= TAB CONTENT PAGES ================= -->
+
                 <!-- ================= TAB 0: WORKING CHANGES & COMMIT ================= -->
-                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource BoolToVis}}">
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=0}">
                     <Grid.ColumnDefinitions>
                         <!-- Staging & Commit Left Panel -->
                         <ColumnDefinition Width="380" MinWidth="300" MaxWidth="550" />
@@ -332,15 +369,15 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Left: Staged / Unstaged Lists + Commit Box -->
-                    <Border Grid.Column="0" Background="{StaticResource BgDarkBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="0,0,1,0">
+                    <Border Grid.Column="0" Background="{DynamicResource BgDarkBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="0,0,1,0">
                         <Grid Margin="12">
                             <Grid.RowDefinitions>
                                 <!-- Staged Section -->
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" MinHeight="100" />
+                                <RowDefinition Height="*" MinHeight="90" />
                                 <!-- Unstaged Section -->
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" MinHeight="100" />
+                                <RowDefinition Height="*" MinHeight="90" />
                                 <!-- Commit Box -->
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
@@ -348,12 +385,12 @@
                             <!-- Staged Changes Header -->
                             <Grid Grid.Row="0" Margin="0,0,0,6">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="STAGED CHANGES" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentEmeraldBrush}" />
-                                    <Border Background="#064e3b" CornerRadius="8" Padding="6,1" Margin="6,0,0,0">
-                                        <TextBlock Text="{Binding StagedChanges.Count}" FontSize="10" Foreground="#6ee7b7" FontWeight="Bold" />
+                                    <TextBlock Text="STAGED CHANGES" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource AccentEmeraldBrush}" />
+                                    <Border Background="#166534" CornerRadius="8" Padding="6,1" Margin="6,0,0,0">
+                                        <TextBlock Text="{Binding StagedChanges.Count}" FontSize="10" Foreground="#86efac" FontWeight="Bold" />
                                     </Border>
                                 </StackPanel>
-                                <Button Content="Unstage All" Style="{StaticResource SecondaryButton}" Command="{Binding UnstageAllCommand}" HorizontalAlignment="Right" Padding="6,2" FontSize="11" />
+                                <Button Content="Unstage All" Style="{DynamicResource SecondaryButton}" Command="{Binding UnstageAllCommand}" HorizontalAlignment="Right" Padding="6,2" FontSize="11" />
                             </Grid>
 
                             <!-- Staged Changes List -->
@@ -367,10 +404,10 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <Border Grid.Column="0" CornerRadius="3" Background="{Binding Status, Converter={StaticResource StatusToBrush}}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding StatusCode}" FontSize="10" FontWeight="Bold" Foreground="#000" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding StatusCode}" FontSize="10" FontWeight="Bold" Foreground="#ffffff" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
-                                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                            <Button Grid.Column="2" Content="−" Style="{StaticResource SecondaryButton}" Command="{Binding DataContext.UnstageItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="Unstage file" Padding="6,1" FontSize="11" Margin="4,0,0,0" />
+                                            <TextBlock Grid.Column="1" Text="{Binding DisplayName}" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <Button Grid.Column="2" Content="−" Style="{DynamicResource SecondaryButton}" Command="{Binding DataContext.UnstageItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="Unstage file" Padding="6,1" FontSize="11" Margin="4,0,0,0" />
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -379,14 +416,14 @@
                             <!-- Unstaged Changes Header -->
                             <Grid Grid.Row="2" Margin="0,0,0,6">
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="UNSTAGED CHANGES" FontWeight="Bold" FontSize="11" Foreground="{StaticResource AccentAmberBrush}" />
-                                    <Border Background="#451a03" CornerRadius="8" Padding="6,1" Margin="6,0,0,0">
-                                        <TextBlock Text="{Binding UnstagedChanges.Count}" FontSize="10" Foreground="#fde047" FontWeight="Bold" />
+                                    <TextBlock Text="UNSTAGED CHANGES" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource AccentAmberBrush}" />
+                                    <Border Background="#854d0e" CornerRadius="8" Padding="6,1" Margin="6,0,0,0">
+                                        <TextBlock Text="{Binding UnstagedChanges.Count}" FontSize="10" Foreground="#fef08a" FontWeight="Bold" />
                                     </Border>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                    <Button Content="Discard" Style="{StaticResource SecondaryButton}" Command="{Binding DiscardSelectedCommand}" ToolTip="Discard selected files" Padding="6,2" FontSize="11" Margin="0,0,4,0" />
-                                    <Button Content="Stage All" Style="{StaticResource SecondaryButton}" Command="{Binding StageAllCommand}" Padding="6,2" FontSize="11" />
+                                    <Button Content="Discard" Style="{DynamicResource SecondaryButton}" Command="{Binding DiscardSelectedCommand}" ToolTip="Discard selected files" Padding="6,2" FontSize="11" Margin="0,0,4,0" />
+                                    <Button Content="Stage All" Style="{DynamicResource SecondaryButton}" Command="{Binding StageAllCommand}" Padding="6,2" FontSize="11" />
                                 </StackPanel>
                             </Grid>
 
@@ -404,12 +441,12 @@
                                             </Grid.ColumnDefinitions>
                                             <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0" />
                                             <Border Grid.Column="1" CornerRadius="3" Background="{Binding Status, Converter={StaticResource StatusToBrush}}" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding StatusCode}" FontSize="10" FontWeight="Bold" Foreground="#000" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding StatusCode}" FontSize="10" FontWeight="Bold" Foreground="#ffffff" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
-                                            <TextBlock Grid.Column="2" Text="{Binding DisplayName}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                            <Button Grid.Column="3" Content="+" Style="{StaticResource SecondaryButton}" Command="{Binding DataContext.StageItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="Stage file" Padding="6,1" FontSize="11" Margin="4,0,2,0" />
-                                            <Button Grid.Column="4" ToolTip="Discard file changes" Style="{StaticResource SecondaryButton}" Command="{Binding DataContext.DiscardItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="5,1" FontSize="10">
-                                                <Path Data="{StaticResource IconTrash}" Fill="{StaticResource AccentRoseBrush}" Width="10" Height="10" Stretch="Uniform" />
+                                            <TextBlock Grid.Column="2" Text="{Binding DisplayName}" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                            <Button Grid.Column="3" Content="+" Style="{DynamicResource SecondaryButton}" Command="{Binding DataContext.StageItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" ToolTip="Stage file" Padding="6,1" FontSize="11" Margin="4,0,2,0" />
+                                            <Button Grid.Column="4" ToolTip="Discard file changes" Style="{DynamicResource SecondaryButton}" Command="{Binding DataContext.DiscardItemCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="5,1" FontSize="10">
+                                                <Path Data="{StaticResource IconTrash}" Fill="{DynamicResource AccentRoseBrush}" Width="10" Height="10" Stretch="Uniform" />
                                             </Button>
                                         </Grid>
                                     </DataTemplate>
@@ -417,9 +454,9 @@
                             </ListBox>
 
                             <!-- Commit Box Card -->
-                            <Border Grid.Row="4" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <Border Grid.Row="4" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
                                 <StackPanel>
-                                    <TextBlock Text="COMMIT CHANGES" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,8" />
+                                    <TextBlock Text="COMMIT CHANGES" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,8" />
                                     <TextBox Text="{Binding CommitSubject, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,6" Tag="Commit summary (e.g. feat: add desktop UI)" />
                                     <TextBox Text="{Binding CommitDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="60" TextWrapping="Wrap" Margin="0,0,0,10" Tag="Description (optional details)..." />
                                     <Grid>
@@ -427,8 +464,8 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <Button Grid.Column="0" Content="Commit" Style="{StaticResource SuccessButton}" Command="{Binding CommitCommand}" Margin="0,0,4,0" />
-                                        <Button Grid.Column="1" Content="Commit &amp; Push" Style="{StaticResource PrimaryButton}" Command="{Binding CommitAndPushCommand}" Margin="4,0,0,0" />
+                                        <Button Grid.Column="0" Content="Commit" Style="{DynamicResource SuccessButton}" Command="{Binding CommitCommand}" Margin="0,0,4,0" />
+                                        <Button Grid.Column="1" Content="Commit &amp; Push" Style="{DynamicResource PrimaryButton}" Command="{Binding CommitAndPushCommand}" Margin="4,0,0,0" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -436,7 +473,7 @@
                     </Border>
 
                     <!-- Splitter -->
-                    <GridSplitter Grid.Column="1" Width="3" Background="{StaticResource BorderDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+                    <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
 
                     <!-- Right: Diff Inspector -->
                     <Grid Grid.Column="2" Margin="14">
@@ -446,17 +483,17 @@
                         </Grid.RowDefinitions>
 
                         <!-- Diff Header -->
-                        <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
+                        <Border Grid.Row="0" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
                             <Grid>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="DIFF INSPECTOR:" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,8,0" />
-                                    <TextBlock Text="{Binding SelectedChange.Path, FallbackValue='Select a file on the left to inspect changes'}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource AccentPrimaryBrush}" />
+                                    <TextBlock Text="DIFF INSPECTOR:" FontWeight="Bold" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,8,0" />
+                                    <TextBlock Text="{Binding SelectedChange.Path, FallbackValue='Select a changed file on the left to view diff'}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AccentPrimaryBrush}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
 
                         <!-- Diff Content ListView -->
-                        <Border Grid.Row="1" Background="{StaticResource BgInputBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="6">
+                        <Border Grid.Row="1" Background="{DynamicResource BgInputBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="6">
                             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                                 <ItemsControl ItemsSource="{Binding DiffLines}">
                                     <ItemsControl.ItemTemplate>
@@ -468,9 +505,9 @@
                                                         <ColumnDefinition Width="40" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Grid.Column="0" Text="{Binding OldLineNumber}" Foreground="{StaticResource TextMutedBrush}" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" TextAlignment="Right" Margin="0,0,8,0" />
-                                                    <TextBlock Grid.Column="1" Text="{Binding NewLineNumber}" Foreground="{StaticResource TextMutedBrush}" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" TextAlignment="Right" Margin="0,0,12,0" />
-                                                    <TextBlock Grid.Column="2" Text="{Binding Text}" Foreground="{Binding Text, Converter={StaticResource DiffLineFg}}" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" />
+                                                    <TextBlock Grid.Column="0" Text="{Binding OldLineNumber}" Foreground="{DynamicResource TextMutedBrush}" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" TextAlignment="Right" Margin="0,0,8,0" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding NewLineNumber}" Foreground="{DynamicResource TextMutedBrush}" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" TextAlignment="Right" Margin="0,0,12,0" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Text}" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" />
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -482,7 +519,7 @@
                 </Grid>
 
                 <!-- ================= TAB 1: COMMIT HISTORY ================= -->
-                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource BoolToVis}}" x:Name="TabHistoryGrid">
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=1}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="3*" MinHeight="150" />
                         <RowDefinition Height="Auto" />
@@ -490,15 +527,15 @@
                     </Grid.RowDefinitions>
 
                     <!-- Commits DataGrid -->
-                    <Border Grid.Row="0" Margin="14,14,14,0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
+                    <Border Grid.Row="0" Margin="14,14,14,0" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
                         <ListView ItemsSource="{Binding Commits}" SelectedItem="{Binding SelectedCommit, Mode=TwoWay}">
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Header="Commit" Width="90">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Border Background="#1e293b" CornerRadius="4" Padding="6,2">
-                                                    <TextBlock Text="{Binding ShortHash}" Foreground="{StaticResource AccentPrimaryBrush}" FontFamily="Cascadia Code, Consolas" FontSize="11" FontWeight="Bold" />
+                                                <Border Background="{DynamicResource BgCardHoverBrush}" CornerRadius="4" Padding="6,2">
+                                                    <TextBlock Text="{Binding ShortHash}" Foreground="{DynamicResource AccentPrimaryBrush}" FontFamily="Cascadia Code, Consolas" FontSize="11" FontWeight="Bold" />
                                                 </Border>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -506,21 +543,21 @@
                                     <GridViewColumn Header="Subject" Width="450">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Subject}" FontWeight="Medium" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Subject}" FontWeight="Medium" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn Header="Author" Width="180">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding AuthorName}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                                                <TextBlock Text="{Binding AuthorName}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn Header="Date" Width="160">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding RelativeTime}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                                <TextBlock Text="{Binding RelativeTime}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -529,39 +566,39 @@
                         </ListView>
                     </Border>
 
-                    <GridSplitter Grid.Row="1" Height="3" Background="{StaticResource BorderDarkBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="14,4" />
+                    <GridSplitter Grid.Row="1" Height="3" Background="{DynamicResource BorderDarkBrush}" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="14,4" />
 
                     <!-- Commit Patch Inspector -->
-                    <Border Grid.Row="2" Margin="14,0,14,14" Background="{StaticResource BgInputBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                    <Border Grid.Row="2" Margin="14,0,14,14" Background="{DynamicResource BgInputBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                            <TextBox Text="{Binding CommitDiffText, Mode=OneWay}" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextPrimaryBrush}" FontFamily="Cascadia Code, Consolas" FontSize="12" TextWrapping="NoWrap" />
+                            <TextBox Text="{Binding CommitDiffText, Mode=OneWay}" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Cascadia Code, Consolas" FontSize="12" TextWrapping="NoWrap" />
                         </ScrollViewer>
                     </Border>
                 </Grid>
 
                 <!-- ================= TAB 2: BRANCHES ================= -->
-                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource BoolToVis}}" x:Name="TabBranchesGrid" Margin="14">
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=2}" Margin="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
                     <!-- Create Branch Bar -->
-                    <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                    <Border Grid.Row="0" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="260" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Create New Branch:" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="0" Text="Create New Branch:" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                             <TextBox Grid.Column="1" x:Name="NewBranchInput" Margin="0,0,10,0" Tag="e.g. feature/login-page" />
-                            <Button Grid.Column="2" Content="Create &amp; Switch" Style="{StaticResource PrimaryButton}" Click="OnCreateBranchClicked" />
+                            <Button Grid.Column="2" Content="Create &amp; Switch" Style="{DynamicResource PrimaryButton}" Click="OnCreateBranchClicked" />
                         </Grid>
                     </Border>
 
                     <!-- Branches Table -->
-                    <Border Grid.Row="1" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
+                    <Border Grid.Row="1" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
                         <ListView ItemsSource="{Binding Branches}">
                             <ListView.View>
                                 <GridView>
@@ -578,8 +615,8 @@
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <Path Data="{StaticResource IconBranch}" Fill="{StaticResource AccentPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                                    <Path Data="{StaticResource IconBranch}" Fill="{DynamicResource AccentPrimaryBrush}" Width="12" Height="12" Stretch="Uniform" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -587,14 +624,14 @@
                                     <GridViewColumn Header="Upstream" Width="220">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Upstream, FallbackValue='—'}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                                <TextBlock Text="{Binding Upstream, FallbackValue='—'}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn Header="Latest Commit" Width="350">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding LastCommitSubject}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding LatestCommitSubject}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -602,8 +639,8 @@
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <Button Content="Checkout" Style="{StaticResource SecondaryButton}" Command="{Binding DataContext.CheckoutBranchCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Padding="8,2" FontSize="11" Margin="0,0,6,0" Visibility="{Binding IsCurrent, Converter={StaticResource InverseBoolToVis}}" />
-                                                    <Button Content="Delete" Style="{StaticResource DangerButton}" Command="{Binding DataContext.DeleteBranchCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Padding="8,2" FontSize="11" Visibility="{Binding IsCurrent, Converter={StaticResource InverseBoolToVis}}" />
+                                                    <Button Content="Checkout" Style="{DynamicResource SecondaryButton}" Command="{Binding DataContext.CheckoutBranchCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Padding="8,2" FontSize="11" Margin="0,0,6,0" Visibility="{Binding IsCurrent, Converter={StaticResource InverseBoolToVis}}" />
+                                                    <Button Content="Delete" Style="{DynamicResource DangerButton}" Command="{Binding DataContext.DeleteBranchCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Padding="8,2" FontSize="11" Visibility="{Binding IsCurrent, Converter={StaticResource InverseBoolToVis}}" />
                                                 </StackPanel>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -615,47 +652,47 @@
                 </Grid>
 
                 <!-- ================= TAB 3: STASHES ================= -->
-                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource BoolToVis}}" x:Name="TabStashesGrid" Margin="14">
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=3}" Margin="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                    <Border Grid.Row="0" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="300" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Save Stash:" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="0" Text="Save Stash:" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                             <TextBox Grid.Column="1" x:Name="NewStashInput" Margin="0,0,10,0" Tag="Optional stash message..." />
-                            <Button Grid.Column="2" Content="Stash All Changes" Style="{StaticResource PrimaryButton}" Click="OnSaveStashClicked" />
+                            <Button Grid.Column="2" Content="Stash All Changes" Style="{DynamicResource PrimaryButton}" Click="OnSaveStashClicked" />
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="1" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
+                    <Border Grid.Row="1" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
                         <ListView ItemsSource="{Binding Stashes}">
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Header="Ref" Width="100">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding RefName}" FontFamily="Cascadia Code, Consolas" FontSize="12" Foreground="{StaticResource AccentPrimaryBrush}" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding RefName}" FontFamily="Cascadia Code, Consolas" FontSize="12" Foreground="{DynamicResource AccentPrimaryBrush}" FontWeight="Bold" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn Header="Message" Width="450">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Message}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" />
+                                                <TextBlock Text="{Binding Message}" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn Header="Time" Width="180">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding RelativeTime}" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                                <TextBlock Text="{Binding Date}" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -663,9 +700,9 @@
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <Button Content="Apply" Style="{StaticResource SecondaryButton}" Command="{Binding DataContext.ApplyStashCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding RefName}" Padding="8,2" FontSize="11" Margin="0,0,4,0" />
-                                                    <Button Content="Pop" Style="{StaticResource SuccessButton}" Command="{Binding DataContext.PopStashCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding RefName}" Padding="8,2" FontSize="11" Margin="0,0,4,0" />
-                                                    <Button Content="Drop" Style="{StaticResource DangerButton}" Command="{Binding DataContext.DropStashCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding RefName}" Padding="8,2" FontSize="11" />
+                                                    <Button Content="Apply" Style="{DynamicResource SecondaryButton}" Command="{Binding DataContext.ApplyStashCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding RefName}" Padding="8,2" FontSize="11" Margin="0,0,4,0" />
+                                                    <Button Content="Pop" Style="{DynamicResource SuccessButton}" Command="{Binding DataContext.PopStashCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding RefName}" Padding="8,2" FontSize="11" Margin="0,0,4,0" />
+                                                    <Button Content="Drop" Style="{DynamicResource DangerButton}" Command="{Binding DataContext.DropStashCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding RefName}" Padding="8,2" FontSize="11" />
                                                 </StackPanel>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -677,13 +714,13 @@
                 </Grid>
 
                 <!-- ================= TAB 4: REMOTES ================= -->
-                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource BoolToVis}}" x:Name="TabRemotesGrid" Margin="14">
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=4}" Margin="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                    <Border Grid.Row="0" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -692,36 +729,36 @@
                                 <ColumnDefinition Width="320" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Add Remote:" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="0" Text="Add Remote:" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                             <TextBox Grid.Column="1" x:Name="RemoteNameInput" Margin="0,0,10,0" Tag="origin" />
-                            <TextBlock Grid.Column="2" Text="URL:" FontWeight="Bold" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="2" Text="URL:" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
                             <TextBox Grid.Column="3" x:Name="RemoteUrlInput" Margin="0,0,10,0" Tag="https://github.com/..." />
-                            <Button Grid.Column="4" Content="Add Remote" Style="{StaticResource PrimaryButton}" Click="OnAddRemoteClicked" />
+                            <Button Grid.Column="4" Content="Add Remote" Style="{DynamicResource PrimaryButton}" Click="OnAddRemoteClicked" />
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="1" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
+                    <Border Grid.Row="1" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6">
                         <ListView ItemsSource="{Binding Remotes}">
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Header="Name" Width="120">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource AccentPrimaryBrush}" />
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource AccentPrimaryBrush}" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn Header="Fetch URL" Width="420">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding FetchUrl}" FontSize="12" Foreground="{StaticResource TextPrimaryBrush}" FontFamily="Cascadia Code, Consolas" />
+                                                <TextBlock Text="{Binding FetchUrl}" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" FontFamily="Cascadia Code, Consolas" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                     <GridViewColumn Header="Actions" Width="120">
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
-                                                <Button Content="Remove" Style="{StaticResource DangerButton}" Command="{Binding DataContext.RemoveRemoteCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Padding="8,2" FontSize="11" />
+                                                <Button Content="Remove" Style="{DynamicResource DangerButton}" Command="{Binding DataContext.RemoveRemoteCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" Padding="8,2" FontSize="11" />
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -732,15 +769,15 @@
                 </Grid>
 
                 <!-- ================= TAB 5: GIT TERMINAL ================= -->
-                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource BoolToVis}}" x:Name="TabTerminalGrid" Margin="14">
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=5}" Margin="14">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" Background="{StaticResource BgInputBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
+                    <Border Grid.Row="0" Background="{DynamicResource BgInputBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,10">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                            <TextBox Text="{Binding TerminalOutput, Mode=OneWay}" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="#38bdf8" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" TextWrapping="Wrap" />
+                            <TextBox Text="{Binding TerminalOutput, Mode=OneWay}" IsReadOnly="True" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource AccentPrimaryBrush}" FontFamily="Cascadia Code, Consolas, Courier New" FontSize="12" TextWrapping="Wrap" />
                         </ScrollViewer>
                     </Border>
 
@@ -752,17 +789,93 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="git " FontWeight="Bold" FontSize="14" Foreground="{StaticResource AccentPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Grid.Column="0" Text="git " FontWeight="Bold" FontSize="14" Foreground="{DynamicResource AccentPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <TextBox Grid.Column="1" Text="{Binding TerminalInput, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" Tag="Type git arguments (e.g. status, log --oneline, diff)..." KeyDown="OnTerminalInputKeyDown" />
-                        <Button Grid.Column="2" Content="Run" Style="{StaticResource PrimaryButton}" Command="{Binding ExecuteTerminalCommand}" Margin="0,0,6,0" />
-                        <Button Grid.Column="3" Content="Clear" Style="{StaticResource SecondaryButton}" Command="{Binding ClearTerminalCommand}" />
+                        <Button Grid.Column="2" Content="Run" Style="{DynamicResource PrimaryButton}" Command="{Binding ExecuteTerminalCommand}" Margin="0,0,6,0" />
+                        <Button Grid.Column="3" Content="Clear" Style="{DynamicResource SecondaryButton}" Command="{Binding ClearTerminalCommand}" />
                     </Grid>
+                </Grid>
+
+                <!-- ================= TAB 6: SETTINGS ================= -->
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=6}" Margin="20">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel MaxWidth="800" HorizontalAlignment="Left">
+                            <TextBlock Text="Application &amp; Workspace Settings" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,16" />
+
+                            <!-- Workspace Folder Card -->
+                            <Border Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="Default Workspace Path" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                                    <TextBlock Text="The root folder where LGMS will automatically discover all local Git repositories on startup." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,10" />
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" Text="{Binding DefaultWorkspacePath, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
+                                        <Button Grid.Column="1" Content="Browse..." Style="{DynamicResource SecondaryButton}" Command="{Binding BrowseFolderCommand}" />
+                                    </Grid>
+                                    <Button Content="Save Path Settings" Style="{DynamicResource PrimaryButton}" Command="{Binding SaveSettingsCommand}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Theme Selection Card -->
+                            <Border Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="Theme &amp; Appearance" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                                    <TextBlock Text="Choose between Sleek Dark Theme or Clean White / Light Theme." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,12" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <Button Content="🌙 Dark Theme" Style="{DynamicResource SecondaryButton}" Command="{Binding ToggleThemeCommand}" Margin="0,0,10,0" Padding="16,8" />
+                                        <Button Content="☀️ Light (White) Theme" Style="{DynamicResource SecondaryButton}" Command="{Binding ToggleThemeCommand}" Padding="16,8" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Global Git Author Credentials Card -->
+                            <Border Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+                                <StackPanel>
+                                    <TextBlock Text="Git Author Profile" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                                    <TextBlock Text="Configures your global user.name and user.email for Git commits." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,12" />
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,0,8" />
+                                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding GitUserName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Email:" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding GitUserEmail, UpdateSourceTrigger=PropertyChanged}" />
+                                    </Grid>
+                                    <Button Content="Save Git Profile" Style="{DynamicResource PrimaryButton}" Command="{Binding SaveGitConfigCommand}" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Diagnostics & System Info -->
+                            <Border Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                                <StackPanel>
+                                    <TextBlock Text="Diagnostics &amp; Environment" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="Git Executable Status: " FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Text="{Binding GitVersion}" FontSize="12" Foreground="{DynamicResource AccentEmeraldBrush}" FontWeight="Bold" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Active Runtime: " FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Text=".NET 9.0 (WPF Native Desktop x64)" FontSize="12" Foreground="{DynamicResource AccentPrimaryBrush}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </Grid>
         </Grid>
 
         <!-- ================= STATUS & NOTIFICATION FOOTER ================= -->
-        <Border Grid.Row="2" Background="{StaticResource BgDarkBrush}" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="0,1,0,0" Padding="14,6">
+        <Border Grid.Row="2" Background="{DynamicResource BgDarkBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="0,1,0,0" Padding="14,6">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -773,18 +886,18 @@
                 <!-- Busy Progress Spinner & Message -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" VerticalAlignment="Center" Margin="0,0,16,0">
                     <ProgressBar IsIndeterminate="True" Width="80" Height="6" Margin="0,0,8,0" />
-                    <TextBlock Text="{Binding BusyMessage}" FontSize="12" Foreground="{StaticResource AccentPrimaryBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding BusyMessage}" FontSize="12" Foreground="{DynamicResource AccentPrimaryBrush}" FontWeight="SemiBold" />
                 </StackPanel>
 
                 <!-- Status Toast Notification Message -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border CornerRadius="3" Width="8" Height="8" Background="{StaticResource AccentEmeraldBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <Border CornerRadius="3" Width="8" Height="8" Background="{DynamicResource AccentEmeraldBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
                 </StackPanel>
 
                 <!-- Git Version Info in bottom right -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding GitVersion}" FontSize="11" Foreground="{StaticResource TextMutedBrush}" />
+                    <TextBlock Text="{Binding GitVersion}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" />
                 </StackPanel>
             </Grid>
         </Border>
