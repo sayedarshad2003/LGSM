@@ -11,6 +11,7 @@
 
             <common:BooleanToVisibilityConverter x:Key="BoolToVis" />
             <common:BooleanToVisibilityConverter x:Key="InverseBoolToVis" Invert="True" />
+            <common:BooleanToTextConverter x:Key="BoolToPrivateString" TrueText="Private" FalseText="Public" />
             <common:IntEqualsToVisibilityConverter x:Key="IntEqualsToVis" />
             <common:IntEqualsToBooleanConverter x:Key="IntEqualsToBool" />
             <common:NullToVisibilityConverter x:Key="NullToVis" />

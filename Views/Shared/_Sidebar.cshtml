@@ -19,7 +19,25 @@
         <li class="nav-item">
             <a class="nav-link @(currentPath.StartsWith("/repositories") ? "active" : "")" href="/repositories">
                 <i class="bi bi-folder"></i>
-                <span>Repositories</span>
+                <span>Local Repositories</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="sidebar-section px-3 py-2 text-uppercase text-muted fw-bold fs-xs mt-3">
+        GitHub Integration
+    </div>
+    <ul class="nav flex-column sidebar-nav">
+        <li class="nav-item">
+            <a class="nav-link @(currentPath == "/GitHub" || currentPath == "/GitHub/Index" ? "active" : "")" href="/GitHub">
+                <i class="bi bi-github"></i>
+                <span>GitHub Accounts</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(currentPath.StartsWith("/GitHub/Repositories") ? "active" : "")" href="/GitHub/Repositories">
+                <i class="bi bi-cloud-arrow-down"></i>
+                <span>Remote Repos</span>
             </a>
         </li>
     </ul>

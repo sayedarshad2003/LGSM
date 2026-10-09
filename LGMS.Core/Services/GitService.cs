@@ -222,15 +222,66 @@ public class GitService : IGitService
         return MapResult(result);
     }
 
+    public async Task<GitResult> PushAsync(string repositoryPath, string remote, string branch)
+    {
+        ValidateGitArg(remote);
+        ValidateGitArg(branch);
+        var result = await _processService.ExecuteAsync("git", new[] { "push", remote, branch }, repositoryPath);
+        return MapResult(result);
+    }
+
     public async Task<GitResult> PullAsync(string repositoryPath)
     {
         var result = await _processService.ExecuteAsync("git", new[] { "pull" }, repositoryPath);
         return MapResult(result);
     }
 
+    public async Task<GitResult> PullAsync(string repositoryPath, string remote, string branch)
+    {
+        ValidateGitArg(remote);
+        ValidateGitArg(branch);
+        var result = await _processService.ExecuteAsync("git", new[] { "pull", "--", remote, branch }, repositoryPath);
+        return MapResult(result);
+    }
+
     public async Task<GitResult> FetchAsync(string repositoryPath)
     {
         var result = await _processService.ExecuteAsync("git", new[] { "fetch", "--all", "--prune" }, repositoryPath);
+        return MapResult(result);
+    }
+
+    public async Task<GitResult> FetchAsync(string repositoryPath, string remote)
+    {
+        ValidateGitArg(remote);
+        var result = await _processService.ExecuteAsync("git", new[] { "fetch", "--prune", remote }, repositoryPath);
+        return MapResult(result);
+    }
+
+    public async Task<GitResult> CloneAsync(string repositoryUrl, string destinationPath, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryUrl))
+        {
+            return GitResult.Fail("Repository URL cannot be empty.");
+        }
+
+        if (Directory.Exists(destinationPath) && Directory.EnumerateFileSystemEntries(destinationPath).Any())
+        {
+            return GitResult.Fail("The clone destination directory must be empty.");
+        }
+
+        var parent = Path.GetDirectoryName(Path.GetFullPath(destinationPath));
+        if (!string.IsNullOrWhiteSpace(parent) && !Directory.Exists(parent))
+        {
+            Directory.CreateDirectory(parent);
+        }
+
+        var result = await _processService.ExecuteAsync(
+            "git",
+            new[] { "clone", "--", repositoryUrl.Trim(), destinationPath },
+            workingDirectory: parent ?? Environment.CurrentDirectory,
+            cancellationToken: cancellationToken,
+            timeout: TimeSpan.FromMinutes(20));
+
         return MapResult(result);
     }
 
@@ -279,12 +330,14 @@ public class GitService : IGitService
 
     public async Task<GitResult> AddRemoteAsync(string repositoryPath, string name, string url)
     {
+        ValidateGitArg(name);
         var result = await _processService.ExecuteAsync("git", new[] { "remote", "add", name, url }, repositoryPath);
         return MapResult(result);
     }
 
     public async Task<GitResult> RemoveRemoteAsync(string repositoryPath, string name)
     {
+        ValidateGitArg(name);
         var result = await _processService.ExecuteAsync("git", new[] { "remote", "remove", name }, repositoryPath);
         return MapResult(result);
     }
@@ -327,18 +380,24 @@ public class GitService : IGitService
 
     public async Task<GitResult> RunCommandAsync(string repositoryPath, string command)
     {
-        // Safe terminal execution: only allow git commands
         var trimmed = command.Trim();
         if (trimmed.StartsWith("git ", StringComparison.OrdinalIgnoreCase))
         {
             trimmed = trimmed[4..].Trim();
         }
 
-        // Split args safely preserving quotes
         var matches = Regex.Matches(trimmed, @"[\""].+?[\""]|[^ ]+");
         var args = matches.Select(m => m.Value.Trim('"')).ToArray();
 
         var result = await _processService.ExecuteAsync("git", args, repositoryPath, timeout: TimeSpan.FromSeconds(30));
         return MapResult(result);
+    }
+
+    private static void ValidateGitArg(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-') || value.Contains('\n') || value.Contains('\r') || value.Contains('\0'))
+        {
+            throw new ArgumentException("Invalid Git argument.");
+        }
     }
 }

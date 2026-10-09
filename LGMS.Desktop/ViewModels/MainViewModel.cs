@@ -17,6 +17,7 @@ public class MainViewModel : ObservableObject
     private readonly IRepositoryScanner _scanner;
     private readonly IProcessService _processService;
     private readonly ISettingsService _settingsService;
+    private readonly GitHubCliService _githubCliService;
 
     private string _workspacePath = string.Empty;
     private string _searchFilter = string.Empty;
@@ -49,6 +50,14 @@ public class MainViewModel : ObservableObject
     private string _gitVersion = "Checking...";
     private bool _isGitInstalled;
 
+    // GitHub Integration fields
+    private GitHubAccountInfo? _selectedGitHubAccount;
+    private ObservableCollection<GitHubAccountInfo> _gitHubAccounts = new();
+    private ObservableCollection<GitHubRepositoryInfo> _gitHubRepositories = new();
+    private ObservableCollection<GitHubRepositoryInfo> _filteredGitHubRepositories = new();
+    private string _gitHubSearchFilter = string.Empty;
+    private string _gitHubCliStatus = "Ready";
+
     // Settings fields
     private string _currentTheme = "dark";
     private string _defaultWorkspacePath = string.Empty;
@@ -60,12 +69,14 @@ public class MainViewModel : ObservableObject
         IGitService gitService,
         IRepositoryScanner scanner,
         IProcessService processService,
-        ISettingsService settingsService)
+        ISettingsService settingsService,
+        GitHubCliService githubCliService)
     {
         _gitService = gitService;
         _scanner = scanner;
         _processService = processService;
         _settingsService = settingsService;
+        _githubCliService = githubCliService;
 
         AllRepositories = new ObservableCollection<Repository>();
         FilteredRepositories = new ObservableCollection<Repository>();
@@ -113,6 +124,15 @@ public class MainViewModel : ObservableObject
         ToggleThemeCommand = new RelayCommand(ToggleTheme);
         SaveSettingsCommand = new RelayCommand(SaveSettings);
         SaveGitConfigCommand = new AsyncRelayCommand(SaveGitConfigAsync);
+
+        // GitHub Commands
+        RefreshGitHubAccountsCommand = new AsyncRelayCommand(LoadGitHubAccountsAsync);
+        SwitchGitHubAccountCommand = new AsyncRelayCommand(p => SwitchGitHubAccountAsync(p as GitHubAccountInfo));
+        LoadGitHubRepositoriesCommand = new AsyncRelayCommand(LoadGitHubRepositoriesAsync);
+        CloneGitHubRepoCommand = new AsyncRelayCommand(p => CloneGitHubRepoAsync(p as GitHubRepositoryInfo));
+        SetupGitCredentialsCommand = new AsyncRelayCommand(SetupGitCredentialsAsync);
+        OpenUrlCommand = new RelayCommand(p => OpenUrl(p as string));
+        CopyCommand = new RelayCommand(p => CopyToClipboard(p as string));
 
         _ = InitializeAsync();
     }
@@ -171,7 +191,7 @@ public class MainViewModel : ObservableObject
         {
             if (SetProperty(ref _searchFilter, value))
             {
-                ApplyFilter();
+                ApplyRepositoryFilter();
             }
         }
     }
@@ -240,6 +260,10 @@ public class MainViewModel : ObservableObject
                 if (value == 0 && SelectedChange != null)
                 {
                     _ = LoadDiffForSelectedChangeAsync();
+                }
+                else if (value == 7 && GitHubAccounts.Count == 0)
+                {
+                    _ = LoadGitHubAccountsAsync();
                 }
             }
         }
@@ -317,17 +341,60 @@ public class MainViewModel : ObservableObject
         set => SetProperty(ref _isGitInstalled, value);
     }
 
+    // GitHub Integration Properties
+    public ObservableCollection<GitHubAccountInfo> GitHubAccounts
+    {
+        get => _gitHubAccounts;
+        set => SetProperty(ref _gitHubAccounts, value);
+    }
+
+    public GitHubAccountInfo? SelectedGitHubAccount
+    {
+        get => _selectedGitHubAccount;
+        set
+        {
+            if (SetProperty(ref _selectedGitHubAccount, value))
+            {
+                _ = LoadGitHubRepositoriesAsync();
+            }
+        }
+    }
+
+    public ObservableCollection<GitHubRepositoryInfo> GitHubRepositories
+    {
+        get => _gitHubRepositories;
+        set => SetProperty(ref _gitHubRepositories, value);
+    }
+
+    public ObservableCollection<GitHubRepositoryInfo> FilteredGitHubRepositories
+    {
+        get => _filteredGitHubRepositories;
+        set => SetProperty(ref _filteredGitHubRepositories, value);
+    }
+
+    public string GitHubSearchFilter
+    {
+        get => _gitHubSearchFilter;
+        set
+        {
+            if (SetProperty(ref _gitHubSearchFilter, value))
+            {
+                ApplyGitHubFilter();
+            }
+        }
+    }
+
+    public string GitHubCliStatus
+    {
+        get => _gitHubCliStatus;
+        set => SetProperty(ref _gitHubCliStatus, value);
+    }
+
     // Settings Properties
     public string CurrentTheme
     {
         get => _currentTheme;
-        set
-        {
-            if (SetProperty(ref _currentTheme, value))
-            {
-                ThemeManager.ApplyTheme(value);
-            }
-        }
+        set => SetProperty(ref _currentTheme, value);
     }
 
     public string DefaultWorkspacePath
@@ -388,6 +455,15 @@ public class MainViewModel : ObservableObject
     public ICommand SaveSettingsCommand { get; }
     public ICommand SaveGitConfigCommand { get; }
 
+    // GitHub Commands
+    public ICommand RefreshGitHubAccountsCommand { get; }
+    public ICommand SwitchGitHubAccountCommand { get; }
+    public ICommand LoadGitHubRepositoriesCommand { get; }
+    public ICommand CloneGitHubRepoCommand { get; }
+    public ICommand SetupGitCredentialsCommand { get; }
+    public ICommand OpenUrlCommand { get; }
+    public ICommand CopyCommand { get; }
+
     private async Task InitializeAsync()
     {
         try
@@ -432,6 +508,9 @@ public class MainViewModel : ObservableObject
             {
                 WorkspacePath = Environment.CurrentDirectory;
             }
+
+            // Preload GitHub accounts in background
+            _ = LoadGitHubAccountsAsync();
         }
         catch (Exception ex)
         {
@@ -451,37 +530,40 @@ public class MainViewModel : ObservableObject
         {
             WorkingFolder = DefaultWorkspacePath,
             Theme = CurrentTheme,
-            AutoScanRepositories = AutoScanOnStartup,
-            RememberWorkingFolder = true
+            AutoScanRepositories = AutoScanOnStartup
         };
+
         _settingsService.SaveSettings(settings);
+        ThemeManager.ApplyTheme(CurrentTheme);
         SetNotification("Settings saved successfully.", "success");
     }
 
-    private async Task SaveGitConfigAsync()
+    public async Task SaveGitConfigAsync()
     {
-        if (!string.IsNullOrWhiteSpace(GitUserName))
+        if (string.IsNullOrWhiteSpace(GitUserName) || string.IsNullOrWhiteSpace(GitUserEmail))
         {
-            await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.name", GitUserName.Trim() }, Environment.CurrentDirectory);
+            SetNotification("Name and email cannot be empty.", "warning");
+            return;
         }
-        if (!string.IsNullOrWhiteSpace(GitUserEmail))
-        {
-            await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.email", GitUserEmail.Trim() }, Environment.CurrentDirectory);
-        }
-        SetNotification("Git author credentials updated globally.", "success");
+
+        await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.name", GitUserName.Trim() }, Environment.CurrentDirectory);
+        await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.email", GitUserEmail.Trim() }, Environment.CurrentDirectory);
+        SetNotification("Global Git author credentials saved.", "success");
     }
 
-    private Task BrowseFolderAsync()
+    public Task BrowseFolderAsync()
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Select Workspace Folder",
+            Title = "Select Workspace Root Folder",
             InitialDirectory = Directory.Exists(WorkspacePath) ? WorkspacePath : @"C:\"
         };
 
         if (dialog.ShowDialog() == true)
         {
             WorkspacePath = dialog.FolderName;
+            DefaultWorkspacePath = dialog.FolderName;
+            SaveSettings();
         }
 
         return Task.CompletedTask;
@@ -489,15 +571,12 @@ public class MainViewModel : ObservableObject
 
     public async Task ScanWorkspaceAsync()
     {
-        if (string.IsNullOrWhiteSpace(WorkspacePath) || !Directory.Exists(WorkspacePath))
-        {
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(WorkspacePath) || !Directory.Exists(WorkspacePath)) return;
 
         try
         {
             IsBusy = true;
-            BusyMessage = "Scanning workspace for Git repositories...";
+            BusyMessage = "Scanning workspace for repositories...";
 
             var repos = await _scanner.ScanAsync(WorkspacePath);
             AllRepositories.Clear();
@@ -505,23 +584,27 @@ public class MainViewModel : ObservableObject
             {
                 AllRepositories.Add(r);
             }
-            ApplyFilter();
 
-            SetNotification($"Found {AllRepositories.Count} repositories in workspace.", "info");
+            ApplyRepositoryFilter();
 
-            if (ActiveRepository == null && AllRepositories.Count > 0)
+            if (ActiveRepository != null)
+            {
+                var refreshedActive = AllRepositories.FirstOrDefault(r => r.Path.Equals(ActiveRepository.Path, StringComparison.OrdinalIgnoreCase));
+                if (refreshedActive != null)
+                {
+                    ActiveRepository = refreshedActive;
+                }
+            }
+            else if (AllRepositories.Count > 0)
             {
                 ActiveRepository = AllRepositories[0];
             }
-            else if (ActiveRepository != null)
-            {
-                var match = AllRepositories.FirstOrDefault(r => r.Path.Equals(ActiveRepository.Path, StringComparison.OrdinalIgnoreCase));
-                if (match != null) ActiveRepository = match;
-            }
+
+            SetNotification($"Found {AllRepositories.Count} repositories in workspace.", "info");
         }
         catch (Exception ex)
         {
-            SetNotification($"Scanning failed: {ex.Message}", "error");
+            SetNotification($"Scan error: {ex.Message}", "error");
         }
         finally
         {
@@ -529,209 +612,188 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    private void ApplyFilter()
+    private void ApplyRepositoryFilter()
     {
         FilteredRepositories.Clear();
-        var query = SearchFilter?.Trim() ?? string.Empty;
-        var items = string.IsNullOrWhiteSpace(query)
+        var q = (SearchFilter ?? string.Empty).Trim();
+        var list = string.IsNullOrEmpty(q)
             ? AllRepositories
-            : AllRepositories.Where(r => r.Name.Contains(query, StringComparison.OrdinalIgnoreCase) || r.Path.Contains(query, StringComparison.OrdinalIgnoreCase));
+            : new ObservableCollection<Repository>(AllRepositories.Where(r => r.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || r.CurrentBranch.Contains(q, StringComparison.OrdinalIgnoreCase)));
 
-        foreach (var item in items)
+        foreach (var r in list)
         {
-            FilteredRepositories.Add(item);
+            FilteredRepositories.Add(r);
         }
     }
 
-    private async Task SelectRepositoryAsync(Repository? repo)
+    public Task SelectRepositoryAsync(Repository? repo)
     {
-        if (repo == null) return;
-        ActiveRepository = repo;
-        await LoadActiveRepoDetailsAsync();
+        if (repo != null)
+        {
+            ActiveRepository = repo;
+        }
+        return Task.CompletedTask;
     }
 
     public async Task RefreshActiveRepoAsync()
     {
         if (ActiveRepository == null) return;
         await LoadActiveRepoDetailsAsync();
-        SetNotification("Repository status refreshed.", "info");
+        SetNotification($"Refreshed status for {ActiveRepository.Name}.", "info");
     }
 
     private async Task LoadActiveRepoDetailsAsync()
     {
-        if (ActiveRepository == null) return;
+        if (ActiveRepository == null || !Directory.Exists(ActiveRepository.Path)) return;
 
         try
         {
             IsBusy = true;
-            BusyMessage = $"Refreshing {ActiveRepository.Name}...";
+            BusyMessage = $"Checking {ActiveRepository.Name}...";
 
-            // Load Status & Changes
             CurrentStatus = await _gitService.ParseStatusAsync(ActiveRepository.Path);
 
+            // Update repo summary properties
+            ActiveRepository.CurrentBranch = CurrentStatus.CurrentBranch;
+            ActiveRepository.ChangesCount = CurrentStatus.Changes.Count;
+            ActiveRepository.IsClean = CurrentStatus.Changes.Count == 0;
+            ActiveRepository.AheadCount = CurrentStatus.Ahead;
+            ActiveRepository.BehindCount = CurrentStatus.Behind;
+
+            // Update staged / unstaged lists
             StagedChanges.Clear();
             UnstagedChanges.Clear();
 
-            foreach (var change in CurrentStatus.Changes)
+            foreach (var chg in CurrentStatus.Changes)
             {
-                if (change.IsStaged)
+                var vm = new GitChangeItemViewModel(chg);
+                if (chg.IsStaged)
                 {
-                    StagedChanges.Add(new GitChangeItemViewModel(change));
+                    StagedChanges.Add(vm);
                 }
                 else
                 {
-                    UnstagedChanges.Add(new GitChangeItemViewModel(change));
+                    UnstagedChanges.Add(vm);
                 }
             }
 
-            // Select first changed file if nothing selected
-            if (SelectedChange == null || !CurrentStatus.Changes.Any(c => c.Path == SelectedChange.Path))
-            {
-                SelectedChange = StagedChanges.FirstOrDefault() ?? UnstagedChanges.FirstOrDefault();
-            }
-            else
-            {
-                await LoadDiffForSelectedChangeAsync();
-            }
-
             // Load Commits
-            await LoadCommitsAsync();
+            var commitsRes = await _gitService.GetCommitsAsync(ActiveRepository.Path, 50);
+            if (commitsRes.Success)
+            {
+                Commits.Clear();
+                var lines = commitsRes.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var p = line.Split('\t');
+                    if (p.Length >= 7)
+                    {
+                        Commits.Add(new GitCommit
+                        {
+                            Hash = p[0].Trim(),
+                            AuthorName = p[2].Trim(),
+                            AuthorEmail = p[3].Trim(),
+                            Date = DateTime.TryParse(p[4].Trim(), out var dt) ? dt : DateTime.UtcNow,
+                            RelativeTime = p[5].Trim(),
+                            Subject = p[6].Trim(),
+                            Body = p.Length > 7 ? p[7].Trim() : string.Empty
+                        });
+                    }
+                }
+                if (Commits.Count > 0)
+                {
+                    SelectedCommit = Commits[0];
+                }
+            }
 
             // Load Branches
-            await LoadBranchesAsync();
+            var branchesRes = await _gitService.GetBranchesAsync(ActiveRepository.Path);
+            if (branchesRes.Success)
+            {
+                Branches.Clear();
+                var bLines = branchesRes.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in bLines)
+                {
+                    var p = line.Split('\t');
+                    if (p.Length >= 5)
+                    {
+                        var name = p[0].Trim();
+                        bool isHead = p[1].Trim() == "*";
+                        bool isRemote = name.StartsWith("remotes/") || name.StartsWith("origin/");
+                        Branches.Add(new GitBranch
+                        {
+                            Name = name,
+                            IsCurrent = isHead,
+                            IsRemote = isRemote,
+                            Upstream = p[2].Trim(),
+                            LatestCommitHash = p[3].Trim(),
+                            LatestCommitSubject = p[4].Trim()
+                        });
+                    }
+                }
+            }
 
             // Load Stashes
-            await LoadStashesAsync();
+            var stashRes = await _gitService.GetStashesAsync(ActiveRepository.Path);
+            if (stashRes.Success)
+            {
+                Stashes.Clear();
+                var sLines = stashRes.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in sLines)
+                {
+                    var p = line.Split('\t');
+                    if (p.Length >= 3)
+                    {
+                        var rawIndex = p[0].Trim().Replace("stash@{", "").Replace("}", "");
+                        Stashes.Add(new GitStash
+                        {
+                            Index = int.TryParse(rawIndex, out var idx) ? idx : 0,
+                            Message = p[1].Trim(),
+                            Date = p[2].Trim()
+                        });
+                    }
+                }
+            }
 
             // Load Remotes
-            await LoadRemotesAsync();
+            var remoteRes = await _gitService.GetRemotesAsync(ActiveRepository.Path);
+            if (remoteRes.Success)
+            {
+                Remotes.Clear();
+                var rLines = remoteRes.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                var dict = new Dictionary<string, (string Fetch, string Push)>();
+                foreach (var line in rLines)
+                {
+                    var parts = line.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 3)
+                    {
+                        var name = parts[0].Trim();
+                        var url = parts[1].Trim();
+                        var type = parts[2].Trim();
+
+                        if (!dict.ContainsKey(name)) dict[name] = (string.Empty, string.Empty);
+                        if (type.Contains("(fetch)")) dict[name] = (url, dict[name].Push);
+                        if (type.Contains("(push)")) dict[name] = (dict[name].Fetch, url);
+                    }
+                }
+                foreach (var kvp in dict)
+                {
+                    Remotes.Add(new GitRemote
+                    {
+                        Name = kvp.Key,
+                        FetchUrl = kvp.Value.Fetch,
+                        PushUrl = kvp.Value.Push
+                    });
+                }
+            }
         }
         catch (Exception ex)
         {
-            SetNotification($"Error loading repository: {ex.Message}", "error");
+            SetNotification($"Error loading repo details: {ex.Message}", "error");
         }
         finally
         {
             IsBusy = false;
-        }
-    }
-
-    private async Task LoadCommitsAsync()
-    {
-        if (ActiveRepository == null) return;
-        var res = await _gitService.GetCommitsAsync(ActiveRepository.Path, 50);
-        Commits.Clear();
-
-        if (res.Success && !string.IsNullOrWhiteSpace(res.Output))
-        {
-            var lines = res.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
-            {
-                var parts = line.Split('\t');
-                if (parts.Length >= 7)
-                {
-                    Commits.Add(new GitCommit
-                    {
-                        Hash = parts[0],
-                        AuthorName = parts[2],
-                        AuthorEmail = parts[3],
-                        Date = DateTime.TryParse(parts[4], out var dt) ? dt : DateTime.UtcNow,
-                        RelativeTime = parts[5],
-                        Subject = parts[6],
-                        Body = parts.Length > 7 ? parts[7] : string.Empty
-                    });
-                }
-            }
-
-            if (SelectedCommit == null && Commits.Count > 0)
-            {
-                SelectedCommit = Commits[0];
-            }
-        }
-    }
-
-    private async Task LoadBranchesAsync()
-    {
-        if (ActiveRepository == null) return;
-        var res = await _gitService.GetBranchesAsync(ActiveRepository.Path);
-        Branches.Clear();
-
-        if (res.Success && !string.IsNullOrWhiteSpace(res.Output))
-        {
-            var lines = res.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
-            {
-                var parts = line.Split('\t');
-                if (parts.Length >= 1)
-                {
-                    var name = parts[0].Trim();
-                    var isHead = parts.Length > 1 && parts[1].Trim() == "*";
-                    var isRemote = name.StartsWith("origin/") || name.StartsWith("remotes/");
-
-                    Branches.Add(new GitBranch
-                    {
-                        Name = name,
-                        IsCurrent = isHead,
-                        IsRemote = isRemote,
-                        Upstream = parts.Length > 2 ? parts[2] : null,
-                        LatestCommitHash = parts.Length > 3 ? parts[3] : string.Empty,
-                        LatestCommitSubject = parts.Length > 4 ? parts[4] : string.Empty
-                    });
-                }
-            }
-        }
-    }
-
-    private async Task LoadStashesAsync()
-    {
-        if (ActiveRepository == null) return;
-        var res = await _gitService.GetStashesAsync(ActiveRepository.Path);
-        Stashes.Clear();
-
-        if (res.Success && !string.IsNullOrWhiteSpace(res.Output))
-        {
-            var lines = res.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            int idx = 0;
-            foreach (var line in lines)
-            {
-                var parts = line.Split('\t');
-                if (parts.Length >= 2)
-                {
-                    Stashes.Add(new GitStash
-                    {
-                        Index = idx++,
-                        Message = parts[1].Trim(),
-                        Date = parts.Length > 2 ? parts[2].Trim() : string.Empty
-                    });
-                }
-            }
-        }
-    }
-
-    private async Task LoadRemotesAsync()
-    {
-        if (ActiveRepository == null) return;
-        var res = await _gitService.GetRemotesAsync(ActiveRepository.Path);
-        Remotes.Clear();
-
-        if (res.Success && !string.IsNullOrWhiteSpace(res.Output))
-        {
-            var lines = res.Output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach (var line in lines)
-            {
-                var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length >= 2 && seen.Add(parts[0]))
-                {
-                    Remotes.Add(new GitRemote
-                    {
-                        Name = parts[0],
-                        FetchUrl = parts[1],
-                        PushUrl = parts[1]
-                    });
-                }
-            }
         }
     }
 
@@ -746,14 +808,59 @@ public class MainViewModel : ObservableObject
 
         try
         {
-            var res = await _gitService.DiffAsync(ActiveRepository.Path, SelectedChange.IsStaged, SelectedChange.Path);
-            RawDiffText = res.Success ? res.Output : $"Failed to load diff: {res.Error}";
-            ParseDiffLines(RawDiffText);
+            var diffRes = await _gitService.DiffAsync(ActiveRepository.Path, SelectedChange.IsStaged, SelectedChange.Model.Path);
+            RawDiffText = diffRes.Output;
+
+            DiffLines.Clear();
+            if (!string.IsNullOrEmpty(RawDiffText))
+            {
+                var lines = RawDiffText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                int oldLine = 0;
+                int newLine = 0;
+
+                foreach (var line in lines)
+                {
+                    var item = new DiffLineItem { Text = line };
+
+                    if (line.StartsWith("@@"))
+                    {
+                        item.LineType = "header";
+                        // Parse hunk header @@ -old,len +new,len @@
+                        var match = System.Text.RegularExpressions.Regex.Match(line, @"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@");
+                        if (match.Success)
+                        {
+                            oldLine = int.Parse(match.Groups[1].Value);
+                            newLine = int.Parse(match.Groups[2].Value);
+                        }
+                    }
+                    else if (line.StartsWith("+") && !line.StartsWith("+++"))
+                    {
+                        item.LineType = "addition";
+                        item.NewLineNumber = newLine++;
+                    }
+                    else if (line.StartsWith("-") && !line.StartsWith("---"))
+                    {
+                        item.LineType = "deletion";
+                        item.OldLineNumber = oldLine++;
+                    }
+                    else if (!line.StartsWith("diff --git") && !line.StartsWith("index ") && !line.StartsWith("---") && !line.StartsWith("+++"))
+                    {
+                        item.LineType = "context";
+                        item.OldLineNumber = oldLine++;
+                        item.NewLineNumber = newLine++;
+                    }
+                    else
+                    {
+                        item.LineType = "meta";
+                    }
+
+                    DiffLines.Add(item);
+                }
+            }
         }
         catch (Exception ex)
         {
-            RawDiffText = $"Diff error: {ex.Message}";
-            DiffLines.Clear();
+            RawDiffText = $"Error reading diff: {ex.Message}";
         }
     }
 
@@ -767,7 +874,7 @@ public class MainViewModel : ObservableObject
 
         try
         {
-            var res = await _processService.ExecuteAsync("git", new[] { "show", "--stat", "--patch", SelectedCommit.Hash }, ActiveRepository.Path);
+            var res = await _processService.ExecuteAsync("git", new[] { "show", SelectedCommit.Hash, "--stat", "-p" }, ActiveRepository.Path);
             CommitDiffText = res.Success ? res.StandardOutput : res.StandardError;
         }
         catch (Exception ex)
@@ -776,153 +883,13 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    private void ParseDiffLines(string diff)
-    {
-        DiffLines.Clear();
-        if (string.IsNullOrWhiteSpace(diff))
-        {
-            DiffLines.Add(new DiffLineItem { Text = "(No differences or newly added empty file)", LineType = "context" });
-            return;
-        }
-
-        var lines = diff.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-        int oldLine = 0;
-        int newLine = 0;
-
-        foreach (var line in lines)
-        {
-            var item = new DiffLineItem { Text = line };
-
-            if (line.StartsWith("@@"))
-            {
-                item.LineType = "header";
-                var match = System.Text.RegularExpressions.Regex.Match(line, @"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@");
-                if (match.Success)
-                {
-                    int.TryParse(match.Groups[1].Value, out oldLine);
-                    int.TryParse(match.Groups[2].Value, out newLine);
-                }
-            }
-            else if (line.StartsWith("+") && !line.StartsWith("+++"))
-            {
-                item.LineType = "add";
-                item.NewLineNumber = newLine++;
-            }
-            else if (line.StartsWith("-") && !line.StartsWith("---"))
-            {
-                item.LineType = "delete";
-                item.OldLineNumber = oldLine++;
-            }
-            else
-            {
-                item.LineType = "context";
-                if (oldLine > 0) item.OldLineNumber = oldLine++;
-                if (newLine > 0) item.NewLineNumber = newLine++;
-            }
-
-            DiffLines.Add(item);
-        }
-    }
-
-    private async Task FetchAsync()
-    {
-        if (ActiveRepository == null) return;
-        try
-        {
-            IsBusy = true;
-            BusyMessage = "Fetching remote updates...";
-            var res = await _gitService.FetchAsync(ActiveRepository.Path);
-            if (res.Success)
-            {
-                SetNotification("Fetched all remotes successfully.", "success");
-                await LoadActiveRepoDetailsAsync();
-            }
-            else
-            {
-                SetNotification($"Fetch failed: {res.Error}", "error");
-            }
-        }
-        finally { IsBusy = false; }
-    }
-
-    private async Task PullAsync()
-    {
-        if (ActiveRepository == null) return;
-        try
-        {
-            IsBusy = true;
-            BusyMessage = "Pulling latest changes...";
-            var res = await _gitService.PullAsync(ActiveRepository.Path);
-            if (res.Success)
-            {
-                SetNotification("Pulled changes successfully.", "success");
-                await LoadActiveRepoDetailsAsync();
-            }
-            else
-            {
-                SetNotification($"Pull error: {res.Error}", "error");
-            }
-        }
-        finally { IsBusy = false; }
-    }
-
-    private async Task PushAsync()
-    {
-        if (ActiveRepository == null) return;
-        try
-        {
-            IsBusy = true;
-            BusyMessage = "Pushing commits to remote...";
-            var res = await _gitService.PushAsync(ActiveRepository.Path);
-            if (res.Success)
-            {
-                SetNotification("Pushed successfully to remote.", "success");
-                await LoadActiveRepoDetailsAsync();
-            }
-            else
-            {
-                SetNotification($"Push error: {res.Error}", "error");
-            }
-        }
-        finally { IsBusy = false; }
-    }
-
-    private async Task StageAllAsync()
+    public async Task StageAllAsync()
     {
         if (ActiveRepository == null) return;
         var res = await _gitService.StageAsync(ActiveRepository.Path, new[] { "." });
         if (res.Success)
         {
-            await LoadActiveRepoDetailsAsync();
             SetNotification("Staged all changes.", "success");
-        }
-        else
-        {
-            SetNotification($"Failed to stage: {res.Error}", "error");
-        }
-    }
-
-    private async Task UnstageAllAsync()
-    {
-        if (ActiveRepository == null) return;
-        var res = await _gitService.UnstageAsync(ActiveRepository.Path, new[] { "." });
-        if (res.Success)
-        {
-            await LoadActiveRepoDetailsAsync();
-            SetNotification("Unstaged all changes.", "success");
-        }
-        else
-        {
-            SetNotification($"Failed to unstage: {res.Error}", "error");
-        }
-    }
-
-    private async Task StageItemAsync(GitChangeItemViewModel? item)
-    {
-        if (ActiveRepository == null || item == null) return;
-        var res = await _gitService.StageAsync(ActiveRepository.Path, new[] { item.Path });
-        if (res.Success)
-        {
             await LoadActiveRepoDetailsAsync();
         }
         else
@@ -931,12 +898,13 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    private async Task UnstageItemAsync(GitChangeItemViewModel? item)
+    public async Task UnstageAllAsync()
     {
-        if (ActiveRepository == null || item == null) return;
-        var res = await _gitService.UnstageAsync(ActiveRepository.Path, new[] { item.Path });
+        if (ActiveRepository == null) return;
+        var res = await _gitService.UnstageAsync(ActiveRepository.Path, new[] { "." });
         if (res.Success)
         {
+            SetNotification("Unstaged all changes.", "info");
             await LoadActiveRepoDetailsAsync();
         }
         else
@@ -945,62 +913,75 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    private async Task DiscardItemAsync(GitChangeItemViewModel? item)
+    public async Task StageItemAsync(GitChangeItemViewModel? item)
     {
         if (ActiveRepository == null || item == null) return;
-        var result = MessageBox.Show($"Are you sure you want to discard changes in '{item.Path}'? This cannot be undone.", "Discard Changes", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (result != MessageBoxResult.Yes) return;
-
-        var res = await _gitService.DiscardAsync(ActiveRepository.Path, new[] { item.Path });
+        var res = await _gitService.StageAsync(ActiveRepository.Path, new[] { item.Model.Path });
         if (res.Success)
         {
-            SetNotification($"Discarded '{item.Path}'.", "info");
+            await LoadActiveRepoDetailsAsync();
+        }
+    }
+
+    public async Task UnstageItemAsync(GitChangeItemViewModel? item)
+    {
+        if (ActiveRepository == null || item == null) return;
+        var res = await _gitService.UnstageAsync(ActiveRepository.Path, new[] { item.Model.Path });
+        if (res.Success)
+        {
+            await LoadActiveRepoDetailsAsync();
+        }
+    }
+
+    public async Task DiscardItemAsync(GitChangeItemViewModel? item)
+    {
+        if (ActiveRepository == null || item == null) return;
+        var confirm = MessageBox.Show($"Are you sure you want to discard changes in '{item.DisplayName}'?", "Confirm Discard", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes) return;
+
+        var res = await _gitService.DiscardAsync(ActiveRepository.Path, new[] { item.Model.Path });
+        if (res.Success)
+        {
+            SetNotification($"Discarded changes in {item.DisplayName}.", "info");
             await LoadActiveRepoDetailsAsync();
         }
         else
         {
-            SetNotification($"Discard failed: {res.Error}", "error");
+            SetNotification($"Discard error: {res.Error}", "error");
         }
     }
 
-    private async Task DiscardSelectedAsync()
+    public async Task DiscardSelectedAsync()
     {
         if (ActiveRepository == null) return;
-        var selected = UnstagedChanges.Where(x => x.IsSelected).Select(x => x.Path).ToList();
+        var selected = UnstagedChanges.Where(x => x.IsSelected).Select(x => x.Model.Path).ToList();
         if (selected.Count == 0)
         {
-            SetNotification("No unstaged files selected to discard.", "warning");
+            SetNotification("No unstaged files selected for discard.", "warning");
             return;
         }
 
-        var result = MessageBox.Show($"Are you sure you want to discard changes in {selected.Count} file(s)? This cannot be undone.", "Discard Multiple Files", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-        if (result != MessageBoxResult.Yes) return;
+        var confirm = MessageBox.Show($"Discard changes in {selected.Count} selected files?", "Confirm Discard Selected", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes) return;
 
         var res = await _gitService.DiscardAsync(ActiveRepository.Path, selected);
         if (res.Success)
         {
-            SetNotification($"Discarded {selected.Count} file(s).", "info");
+            SetNotification($"Discarded changes in {selected.Count} files.", "info");
             await LoadActiveRepoDetailsAsync();
         }
         else
         {
-            SetNotification($"Discard failed: {res.Error}", "error");
+            SetNotification($"Discard error: {res.Error}", "error");
         }
     }
 
-    private async Task CommitAsync()
+    public async Task CommitAsync()
     {
         if (ActiveRepository == null) return;
-
         if (string.IsNullOrWhiteSpace(CommitSubject))
         {
-            SetNotification("Please enter a commit message.", "warning");
-            return;
-        }
-
-        if (StagedChanges.Count == 0)
-        {
-            SetNotification("No staged changes to commit. Stage files first.", "warning");
+            SetNotification("Commit subject cannot be empty.", "warning");
             return;
         }
 
@@ -1013,7 +994,7 @@ public class MainViewModel : ObservableObject
         {
             CommitSubject = string.Empty;
             CommitDescription = string.Empty;
-            SetNotification("Committed changes successfully.", "success");
+            SetNotification("Commit created successfully!", "success");
             await LoadActiveRepoDetailsAsync();
         }
         else
@@ -1022,22 +1003,96 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    private async Task CommitAndPushAsync()
+    public async Task CommitAndPushAsync()
     {
+        if (ActiveRepository == null) return;
         await CommitAsync();
-        if (string.IsNullOrEmpty(CommitSubject)) // Meaning commit succeeded
+        await PushAsync();
+    }
+
+    public async Task FetchAsync()
+    {
+        if (ActiveRepository == null) return;
+        try
         {
-            await PushAsync();
+            IsBusy = true;
+            BusyMessage = "Fetching remote references...";
+            var res = await _gitService.FetchAsync(ActiveRepository.Path);
+            if (res.Success)
+            {
+                SetNotification("Fetch completed successfully.", "success");
+                await LoadActiveRepoDetailsAsync();
+            }
+            else
+            {
+                SetNotification($"Fetch failed: {res.Error}", "error");
+            }
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
-    private async Task CheckoutBranchAsync(string? branch)
+    public async Task PullAsync()
     {
-        if (ActiveRepository == null || string.IsNullOrWhiteSpace(branch)) return;
-        var res = await _gitService.CheckoutAsync(ActiveRepository.Path, branch);
+        if (ActiveRepository == null) return;
+        try
+        {
+            IsBusy = true;
+            BusyMessage = "Pulling latest changes from upstream...";
+            var res = await _gitService.PullAsync(ActiveRepository.Path);
+            if (res.Success)
+            {
+                SetNotification("Pull completed successfully!", "success");
+                await LoadActiveRepoDetailsAsync();
+            }
+            else
+            {
+                SetNotification($"Pull failed: {res.Error}", "error");
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task PushAsync()
+    {
+        if (ActiveRepository == null) return;
+        try
+        {
+            IsBusy = true;
+            BusyMessage = "Pushing commits to remote...";
+            var res = await _gitService.PushAsync(ActiveRepository.Path);
+            if (res.Success)
+            {
+                SetNotification("Push succeeded!", "success");
+                await LoadActiveRepoDetailsAsync();
+            }
+            else
+            {
+                SetNotification($"Push failed: {res.Error}", "error");
+            }
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task CheckoutBranchAsync(string? branchName)
+    {
+        if (ActiveRepository == null || string.IsNullOrWhiteSpace(branchName)) return;
+        var cleanBranch = branchName.StartsWith("remotes/origin/")
+            ? branchName["remotes/origin/".Length..]
+            : branchName;
+
+        var res = await _gitService.CheckoutAsync(ActiveRepository.Path, cleanBranch);
         if (res.Success)
         {
-            SetNotification($"Checked out branch '{branch}'.", "success");
+            SetNotification($"Switched to branch '{cleanBranch}'.", "success");
             await LoadActiveRepoDetailsAsync();
         }
         else
@@ -1239,6 +1294,178 @@ public class MainViewModel : ObservableObject
             {
                 SetNotification($"Terminal launch error: {ex.Message}", "error");
             }
+        }
+    }
+
+    // GitHub Integration Logic
+    public async Task LoadGitHubAccountsAsync()
+    {
+        try
+        {
+            var accounts = await _githubCliService.GetAccountsAsync();
+            GitHubAccounts.Clear();
+            foreach (var acc in accounts)
+            {
+                GitHubAccounts.Add(acc);
+            }
+            SelectedGitHubAccount = GitHubAccounts.FirstOrDefault(a => a.IsActive) ?? GitHubAccounts.FirstOrDefault();
+            GitHubCliStatus = accounts.Count > 0 ? $"{accounts.Count} accounts authenticated." : "No accounts authenticated in gh CLI.";
+        }
+        catch (Exception ex)
+        {
+            GitHubCliStatus = $"gh CLI error: {ex.Message}";
+        }
+    }
+
+    public async Task LoadGitHubRepositoriesAsync()
+    {
+        if (SelectedGitHubAccount == null)
+        {
+            GitHubRepositories.Clear();
+            FilteredGitHubRepositories.Clear();
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            BusyMessage = $"Loading repositories for @{SelectedGitHubAccount.Username}...";
+            var repos = await _githubCliService.ListRepositoriesAsync(SelectedGitHubAccount.Host, SelectedGitHubAccount.Username);
+            GitHubRepositories.Clear();
+            foreach (var r in repos)
+            {
+                GitHubRepositories.Add(r);
+            }
+            ApplyGitHubFilter();
+            SetNotification($"Loaded {repos.Count} repositories for @{SelectedGitHubAccount.Username}.", "success");
+        }
+        catch (Exception ex)
+        {
+            SetNotification($"Failed to load repositories: {ex.Message}", "error");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void ApplyGitHubFilter()
+    {
+        FilteredGitHubRepositories.Clear();
+        var q = (GitHubSearchFilter ?? string.Empty).Trim();
+        var list = string.IsNullOrEmpty(q)
+            ? GitHubRepositories
+            : new ObservableCollection<GitHubRepositoryInfo>(GitHubRepositories.Where(r => r.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || r.Owner.Contains(q, StringComparison.OrdinalIgnoreCase)));
+
+        foreach (var r in list)
+        {
+            FilteredGitHubRepositories.Add(r);
+        }
+    }
+
+    public async Task SwitchGitHubAccountAsync(GitHubAccountInfo? account)
+    {
+        if (account == null) return;
+        try
+        {
+            IsBusy = true;
+            BusyMessage = $"Switching active account to @{account.Username}...";
+            await _githubCliService.SwitchAccountAsync(account.Host, account.Username);
+            SetNotification($"Active account switched to @{account.Username}.", "success");
+            await LoadGitHubAccountsAsync();
+        }
+        catch (Exception ex)
+        {
+            SetNotification($"Account switch error: {ex.Message}", "error");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task CloneGitHubRepoAsync(GitHubRepositoryInfo? repo)
+    {
+        if (repo == null) return;
+        if (SelectedGitHubAccount == null)
+        {
+            SetNotification("Please select an authenticated GitHub account first.", "warning");
+            return;
+        }
+
+        var defaultDest = Path.Combine(WorkspacePath, repo.Name);
+        var res = MessageBox.Show($"Clone '{repo.Name}' into:\n{defaultDest}\n\nProceed?", "Clone Repository", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (res != MessageBoxResult.Yes) return;
+
+        try
+        {
+            IsBusy = true;
+            BusyMessage = $"Cloning {repo.Name}...";
+            var cloneResult = await _githubCliService.ExecuteForAccountAsync(
+                SelectedGitHubAccount.Host,
+                SelectedGitHubAccount.Username,
+                token => _gitService.CloneAsync(repo.Url, defaultDest, token));
+
+            if (cloneResult.Success)
+            {
+                SetNotification($"Cloned {repo.Name} successfully!", "success");
+                await ScanWorkspaceAsync();
+            }
+            else
+            {
+                SetNotification($"Clone failed: {cloneResult.Error}", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetNotification($"Clone error: {ex.Message}", "error");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task SetupGitCredentialsAsync()
+    {
+        try
+        {
+            IsBusy = true;
+            BusyMessage = "Configuring Git credentials (gh auth setup-git)...";
+            var result = await _githubCliService.SetupGitCredentialsAsync();
+            if (result.Success)
+            {
+                SetNotification("Configured Git to authenticate through GitHub CLI!", "success");
+            }
+            else
+            {
+                SetNotification($"Setup Git failed: {result.Error}", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetNotification($"Setup Git error: {ex.Message}", "error");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private void OpenUrl(string? url)
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
+    }
+
+    private void CopyToClipboard(string? text)
+    {
+        if (!string.IsNullOrWhiteSpace(text))
+        {
+            Clipboard.SetText(text);
+            SetNotification("Copied to clipboard!", "info");
         }
     }
 

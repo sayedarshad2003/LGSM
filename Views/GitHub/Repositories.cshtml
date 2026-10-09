@@ -1,0 +1,245 @@
+@model LGMS.ViewModels.GitHubRepositoriesViewModel
+@{
+    ViewData["Title"] = $"GitHub Repositories - @{Model.Username}";
+}
+
+<div class="container-fluid p-4">
+    <!-- Header with Account Switcher & Search -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a asp-action="Index" class="text-decoration-none text-muted">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h2 class="h4 mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-github text-primary"></i>
+                    <span>Remote Repositories</span>
+                </h2>
+                <span class="badge bg-dark text-white">@@@Model.Username</span>
+            </div>
+            <p class="text-muted small mb-0">Browse remote repositories for account <strong>@@@Model.Username</strong> on <strong>@Model.Host</strong></p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Account selector dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"></i>
+                    <span>@@@Model.Username</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><h6 class="dropdown-header">Switch Account</h6></li>
+                    @foreach (var acc in Model.AllAccounts)
+                    {
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center justify-content-between gap-3 @(acc.Username == Model.Username ? "active" : "")"
+                               asp-action="Repositories" asp-route-host="@acc.Host" asp-route-username="@acc.Username">
+                                <span>@@@acc.Username</span>
+                                @if (acc.IsActive)
+                                {
+                                    <span class="badge bg-success ms-2">Active</span>
+                                }
+                            </a>
+                        </li>
+                    }
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item small" asp-action="Index">
+                            <i class="bi bi-gear me-1"></i> Manage Accounts
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <a asp-action="Repositories" asp-route-host="@Model.Host" asp-route-username="@Model.Username" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success d-flex align-items-center alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div>@Model.SuccessMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Search bar & Count -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <form method="get" asp-action="Repositories" class="row g-2 align-items-center">
+                <input type="hidden" name="host" value="@Model.Host" />
+                <input type="hidden" name="username" value="@Model.Username" />
+                <div class="col-md-9">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" name="search" value="@Model.SearchQuery" class="form-control border-start-0" placeholder="Filter repositories by name or owner..." />
+                    </div>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+                    {
+                        <a asp-action="Repositories" asp-route-host="@Model.Host" asp-route-username="@Model.Username" class="btn btn-outline-secondary">Reset</a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Repositories Grid -->
+    @if (Model.Repositories.Count == 0)
+    {
+        <div class="card shadow-sm border-0 py-5 text-center text-muted">
+            <i class="bi bi-journal-code display-4 mb-3 d-block opacity-50"></i>
+            <h5>No repositories found</h5>
+            <p class="small">No repositories match the search criteria or this account has no accessible repositories.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+            @foreach (var repo in Model.Repositories)
+            {
+                var expectedLocalPath = System.IO.Path.Combine(Model.DefaultCloneRoot, repo.Name).ToLowerInvariant();
+                bool isLocallyPresent = Model.ExistingLocalPaths.Contains(expectedLocalPath);
+
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 position-relative">
+                        <div class="card-body d-flex flex-column p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0 text-truncate fw-bold me-2" title="@repo.Name">
+                                    <i class="bi bi-git me-1 text-primary"></i>
+                                    @repo.Name
+                                </h6>
+                                <div class="d-flex align-items-center gap-1">
+                                    @if (repo.IsPrivate)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border fs-xs">
+                                            <i class="bi bi-lock-fill"></i> Private
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-subtle text-success border fs-xs">
+                                            <i class="bi bi-globe"></i> Public
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="text-muted small mb-3">
+                                <span>Owner: <strong>@repo.Owner</strong></span>
+                                @if (!string.IsNullOrWhiteSpace(repo.DefaultBranch))
+                                {
+                                    <span class="ms-2"><i class="bi bi-bezier2 me-1"></i>@repo.DefaultBranch</span>
+                                }
+                            </div>
+
+                            <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                                <a href="@repo.Url" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary" title="Open in GitHub">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i> GitHub
+                                </a>
+
+                                <button type="button"
+                                        class="btn btn-sm btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#cloneModal"
+                                        data-repo-name="@repo.Name"
+                                        data-repo-url="@repo.Url"
+                                        data-dest-path="@System.IO.Path.Combine(Model.DefaultCloneRoot, repo.Name)"
+                                        data-host="@Model.Host"
+                                        data-username="@Model.Username">
+                                    <i class="bi bi-download me-1"></i> Clone
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Clone Modal -->
+<div class="modal fade" id="cloneModal" tabindex="-1" aria-labelledby="cloneModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="Clone" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="modalHost" name="Host" value="@Model.Host" />
+                <input type="hidden" id="modalUsername" name="Username" value="@Model.Username" />
+                <input type="hidden" id="modalRepoName" name="RepositoryName" value="" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title h6" id="cloneModalLabel">
+                        <i class="bi bi-download me-1"></i> Clone Repository
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Authenticated Account</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                            <input type="text" class="form-control" id="modalAccountDisplay" value="@@@Model.Username" readonly />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Repository URL</label>
+                        <input type="text" class="form-control form-control-sm" id="modalRepoUrl" name="RepositoryUrl" required readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Local Destination Path</label>
+                        <input type="text" class="form-control form-control-sm" id="modalDestPath" name="DestinationPath" required />
+                        <div class="form-text small">Destination folder must be empty or newly created.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-cloud-arrow-down me-1"></i> Start Clone
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const cloneModal = document.getElementById('cloneModal');
+        if (cloneModal) {
+            cloneModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const repoName = button.getAttribute('data-repo-name');
+                const repoUrl = button.getAttribute('data-repo-url');
+                const destPath = button.getAttribute('data-dest-path');
+                const host = button.getAttribute('data-host');
+                const username = button.getAttribute('data-username');
+
+                document.getElementById('modalRepoName').value = repoName;
+                document.getElementById('modalRepoUrl').value = repoUrl;
+                document.getElementById('modalDestPath').value = destPath;
+                document.getElementById('modalHost').value = host;
+                document.getElementById('modalUsername').value = username;
+                document.getElementById('modalAccountDisplay').value = '@@' + username + ' (' + host + ')';
+            });
+        }
+    </script>
+}

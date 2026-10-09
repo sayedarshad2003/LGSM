@@ -36,6 +36,11 @@ public partial class App : Application
         services.AddSingleton<IRepositoryScanner, RepositoryScanner>();
         services.AddSingleton<IGitService, GitService>();
 
+        // GitHub Integration Services
+        services.AddSingleton<GitAccountOperationLock>();
+        services.AddSingleton<ProcessRunner>();
+        services.AddSingleton<GitHubCliService>();
+
         services.AddSingleton<MainViewModel>();
         services.AddTransient<MainWindow>();
     }

@@ -11,8 +11,12 @@ public interface IGitService
     Task<GitResult> DiscardAsync(string repositoryPath, IEnumerable<string> files);
     Task<GitResult> CommitAsync(string repositoryPath, string message);
     Task<GitResult> PushAsync(string repositoryPath);
+    Task<GitResult> PushAsync(string repositoryPath, string remote, string branch);
     Task<GitResult> PullAsync(string repositoryPath);
+    Task<GitResult> PullAsync(string repositoryPath, string remote, string branch);
     Task<GitResult> FetchAsync(string repositoryPath);
+    Task<GitResult> FetchAsync(string repositoryPath, string remote);
+    Task<GitResult> CloneAsync(string repositoryUrl, string destinationPath, CancellationToken cancellationToken = default);
     Task<GitResult> GetBranchesAsync(string repositoryPath);
     Task<GitResult> CheckoutAsync(string repositoryPath, string branch);
     Task<GitResult> CreateBranchAsync(string repositoryPath, string branch);

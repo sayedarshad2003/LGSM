@@ -23,6 +23,19 @@ public class BooleanToVisibilityConverter : IValueConverter
     }
 }
 
+public class BooleanToTextConverter : IValueConverter
+{
+    public string TrueText { get; set; } = "Private";
+    public string FalseText { get; set; } = "Public";
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return value is bool b && b ? TrueText : FalseText;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
 public class IntEqualsToVisibilityConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

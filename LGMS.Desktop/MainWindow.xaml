@@ -353,6 +353,31 @@
                                 </ControlTemplate>
                             </RadioButton.Template>
                         </RadioButton>
+
+                        <!-- Tab 7: GitHub Integration -->
+                        <RadioButton GroupName="NavTabs" Tag="7" IsChecked="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=7}" Click="OnTabSelected" Style="{x:Null}">
+                            <RadioButton.Template>
+                                <ControlTemplate TargetType="RadioButton">
+                                    <Border x:Name="tabBorder" BorderThickness="0,0,0,2" BorderBrush="Transparent" Padding="14,12" Background="Transparent" Cursor="Hand">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🐙 GitHub" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" x:Name="txt" />
+                                            <Border CornerRadius="8" Background="{DynamicResource BgCardBrush}" Padding="6,1" Margin="6,0,0,0" VerticalAlignment="Center" Visibility="{Binding GitHubAccounts.Count, Converter={StaticResource CountToVis}}">
+                                                <TextBlock Text="{Binding GitHubAccounts.Count}" FontSize="11" Foreground="{DynamicResource AccentPrimaryBrush}" FontWeight="Bold" />
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="tabBorder" Property="BorderBrush" Value="{DynamicResource AccentPrimaryBrush}" />
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </RadioButton.Template>
+                        </RadioButton>
                     </StackPanel>
                 </Border>
 
@@ -870,6 +895,152 @@
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
+                </Grid>
+
+                <!-- ================= TAB 7: GITHUB INTEGRATION ================= -->
+                <Grid Grid.Row="1" Visibility="{Binding SelectedTabIndex, Converter={StaticResource IntEqualsToVis}, ConverterParameter=7}">
+                    <Grid.ColumnDefinitions>
+                        <!-- Accounts Left Sidebar -->
+                        <ColumnDefinition Width="340" MinWidth="280" MaxWidth="480" />
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Repositories Right Panel -->
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Authenticated GitHub Accounts -->
+                    <Border Grid.Column="0" Background="{DynamicResource BgDarkBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="0,0,1,0" Padding="16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="GITHUB ACCOUNTS" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" />
+                                    <Button Content="↻ Refresh" Style="{DynamicResource SecondaryButton}" Command="{Binding RefreshGitHubAccountsCommand}" HorizontalAlignment="Right" Padding="8,3" FontSize="11" />
+                                </Grid>
+                                <TextBlock Text="Select an account to browse and clone remote repositories." FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <!-- Accounts ListBox -->
+                            <ListBox Grid.Row="1" ItemsSource="{Binding GitHubAccounts}" SelectedItem="{Binding SelectedGitHubAccount, Mode=TwoWay}" Margin="0,0,0,12">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="6" Background="{DynamicResource BgCardBrush}" Padding="10,8" Margin="0,3">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="@@" Foreground="{DynamicResource AccentPrimaryBrush}" FontWeight="Bold" FontSize="13" />
+                                                        <TextBlock Text="{Binding Username}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding Host}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0" />
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <Border CornerRadius="4" Padding="6,2" Background="#166534" Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}" Margin="0,0,6,0">
+                                                        <TextBlock Text="Active" FontSize="10" FontWeight="Bold" Foreground="#86efac" />
+                                                    </Border>
+                                                    <Button Content="Set Active" Style="{DynamicResource SecondaryButton}" Command="{Binding DataContext.SwitchGitHubAccountCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Visibility="{Binding IsActive, Converter={StaticResource InverseBoolToVis}}" Padding="6,2" FontSize="10" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- Bottom Quick Auth Helper Card -->
+                            <Border Grid.Row="2" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <StackPanel>
+                                    <TextBlock Text="Connect New Account" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,4" />
+                                    <TextBlock Text="Run in PowerShell for browser login:" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6" />
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" Text="gh auth login --web" IsReadOnly="True" FontSize="11" FontFamily="Consolas, monospace" Background="{DynamicResource BgDarkestBrush}" Padding="6,4" />
+                                        <Button Grid.Column="1" Content="Copy" Style="{DynamicResource SecondaryButton}" Command="{Binding CopyCommand}" CommandParameter="gh auth login --web" Margin="4,0,0,0" Padding="8,3" FontSize="11" />
+                                    </Grid>
+                                    <Button Content="🔑 Configure Git Auth (setup-git)" Style="{DynamicResource SecondaryButton}" Command="{Binding SetupGitCredentialsCommand}" HorizontalAlignment="Stretch" Padding="6,4" FontSize="11" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Splitter -->
+                    <GridSplitter Grid.Column="1" Width="3" Background="{DynamicResource BorderDarkBrush}" HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+
+                    <!-- Right: Repositories Browser -->
+                    <Grid Grid.Column="2" Background="{DynamicResource BgDarkestBrush}" Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Repositories Header -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Remote Repositories for " FontSize="16" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding SelectedGitHubAccount.Username, StringFormat='@@{0}'}" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource AccentPrimaryBrush}" />
+                                <Border Background="{DynamicResource BgCardBrush}" CornerRadius="10" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding FilteredGitHubRepositories.Count, StringFormat='{}{0} repos'}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" FontWeight="SemiBold" />
+                                </Border>
+                            </StackPanel>
+                            <Button Content="↻ Reload Repos" Style="{DynamicResource SecondaryButton}" Command="{Binding LoadGitHubRepositoriesCommand}" HorizontalAlignment="Right" Padding="10,4" FontSize="12" />
+                        </Grid>
+
+                        <!-- Search Filter Box -->
+                        <TextBox Grid.Row="1" Text="{Binding GitHubSearchFilter, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" Tag="Filter remote repositories..." />
+
+                        <!-- Repositories Grid List -->
+                        <ListBox Grid.Row="2" ItemsSource="{Binding FilteredGitHubRepositories}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="8" Background="{DynamicResource BgCardBrush}" BorderBrush="{DynamicResource BorderDarkBrush}" BorderThickness="1" Padding="14" Margin="6" Width="320" Height="130">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Title and Private badge -->
+                                            <Grid Grid.Row="0" Margin="0,0,0,4">
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="210" ToolTip="{Binding Name}" />
+                                                <Border HorizontalAlignment="Right" CornerRadius="4" Padding="5,2" Background="#1e293b" BorderBrush="#334155" BorderThickness="1">
+                                                    <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BoolToPrivateString}}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                </Border>
+                                            </Grid>
+
+                                            <!-- Details -->
+                                            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Owner, StringFormat='Owner: {0}'}" FontSize="11" Foreground="{DynamicResource TextMutedBrush}" />
+                                                <TextBlock Text="{Binding DefaultBranch, StringFormat='Branch: {0}'}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                                            </StackPanel>
+
+                                            <!-- Action Buttons -->
+                                            <Grid Grid.Row="2">
+                                                <Button Content="↗ GitHub" Style="{DynamicResource SecondaryButton}" Command="{Binding DataContext.OpenUrlCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Url}" HorizontalAlignment="Left" Padding="8,2" FontSize="11" />
+                                                <Button Content="⬇ Clone" Style="{DynamicResource PrimaryButton}" Command="{Binding DataContext.CloneGitHubRepoCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" HorizontalAlignment="Right" Padding="12,2" FontSize="11" />
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
                 </Grid>
             </Grid>
         </Grid>

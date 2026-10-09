@@ -1,0 +1,272 @@
+@model LGMS.ViewModels.GitHubAccountsViewModel
+@{
+    ViewData["Title"] = "GitHub Accounts";
+}
+
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="h4 mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-github text-primary"></i>
+                <span>GitHub Accounts</span>
+            </h2>
+            <p class="text-muted small mb-0">Manage multiple authenticated GitHub accounts, browse remote repositories, and coordinate Git operations.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <form asp-action="SetupGit" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Configure Git to use GitHub CLI credentials">
+                    <i class="bi bi-key me-1"></i> Setup Git Auth
+                </button>
+            </form>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#connectAccountModal">
+                <i class="bi bi-person-plus me-1"></i> Connect Account
+            </button>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger d-flex align-items-center alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+            <div>@Model.ErrorMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+    {
+        <div class="alert alert-success d-flex align-items-center alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <div>@Model.SuccessMessage</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Accounts List -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                    <h5 class="card-title h6 mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-people"></i> Authenticated Accounts (@Model.Accounts.Count)
+                    </h5>
+                    <span class="badge bg-secondary-subtle text-secondary border">Managed via GitHub CLI</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Accounts.Count == 0)
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-github display-4 mb-3 d-block opacity-50"></i>
+                            <p class="mb-2 fw-semibold">No authenticated GitHub accounts detected.</p>
+                            <p class="small mb-3">Authenticate using the GitHub CLI or click Connect Account below.</p>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#connectAccountModal">
+                                <i class="bi bi-box-arrow-in-up-right me-1"></i> Authenticate Account
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var account in Model.Accounts)
+                            {
+                                <div class="list-group-item p-3 d-flex flex-wrap align-items-center justify-content-between gap-3 @(account.IsActive ? "bg-primary-subtle bg-opacity-10 border-start border-primary border-3" : "")">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle rounded-circle bg-dark text-white d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-size: 1.2rem;">
+                                            <i class="bi bi-github"></i>
+                                        </div>
+                                        <div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fw-bold fs-6">@@@account.Username</span>
+                                                @if (account.IsActive)
+                                                {
+                                                    <span class="badge bg-success"><i class="bi bi-check2 me-1"></i> Active</span>
+                                                }
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="bi bi-globe me-1"></i> @account.Host
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a asp-action="Repositories" asp-route-host="@account.Host" asp-route-username="@account.Username" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-folder me-1"></i> Repositories
+                                        </a>
+
+                                        @if (!account.IsActive)
+                                        {
+                                            <form asp-action="SwitchAccount" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="host" value="@account.Host" />
+                                                <input type="hidden" name="username" value="@account.Username" />
+                                                <button type="submit" class="btn btn-sm btn-secondary">
+                                                    <i class="bi bi-arrow-repeat me-1"></i> Switch to Active
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-sm btn-success disabled">
+                                                <i class="bi bi-check-lg me-1"></i> Current Active
+                                            </button>
+                                        }
+
+                                        <a href="https://@account.Host/@account.Username" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-icon btn-outline-secondary" title="View Profile on GitHub">
+                                            <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Operations Audit Log (from MS SQL Server) -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                    <h5 class="card-title h6 mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history"></i> Recent Operation History
+                    </h5>
+                    <span class="badge bg-secondary-subtle text-secondary border">SQL Server (LGMS_DB)</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentLogs.Count == 0)
+                    {
+                        <div class="text-center py-4 text-muted small">
+                            No operation logs recorded yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm align-middle mb-0">
+                                <thead class="table-light fs-xs">
+                                    <tr>
+                                        <th class="ps-3">Operation</th>
+                                        <th>Status</th>
+                                        <th>Details</th>
+                                        <th class="text-end pe-3">Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in Model.RecentLogs)
+                                    {
+                                        <tr>
+                                            <td class="ps-3 fw-semibold fs-sm">@log.Operation</td>
+                                            <td>
+                                                @if (log.Status == "Success")
+                                                {
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Success</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Failed</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted small text-truncate" style="max-width: 300px;" title="@log.Message">
+                                                @log.Message
+                                            </td>
+                                            <td class="text-end pe-3 text-muted small">
+                                                @log.CreatedAt.ToLocalTime().ToString("g")
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar / Guidance -->
+        <div class="col-lg-4">
+            <!-- Quick Actions -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title h6 mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-lock text-primary"></i> Multi-Account Security
+                    </h5>
+                </div>
+                <div class="card-body small">
+                    <p class="mb-2">
+                        <strong>Zero Plaintext Tokens:</strong> LGMS delegates credential storage to the official GitHub CLI and Windows Credential Manager.
+                    </p>
+                    <p class="mb-2">
+                        <strong>Serialized Execution:</strong> Because the active account is system-level, LGMS serializes account switching with push/pull/clone operations to guarantee atomicity.
+                    </p>
+                    <p class="mb-0">
+                        <strong>Commit Authorship:</strong> Switching GitHub transport accounts will not modify your Git commit author (<code class="text-primary">user.name</code> / <code class="text-primary">user.email</code>).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Terminal Commands Card -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent py-3">
+                    <h5 class="card-title h6 mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-terminal"></i> GitHub CLI Quick Reference
+                    </h5>
+                </div>
+                <div class="card-body small p-3">
+                    <div class="mb-3">
+                        <div class="text-muted fw-semibold mb-1">Add another account:</div>
+                        <code class="d-block p-2 rounded bg-dark text-light">gh auth login --web</code>
+                    </div>
+                    <div class="mb-3">
+                        <div class="text-muted fw-semibold mb-1">Check accounts status:</div>
+                        <code class="d-block p-2 rounded bg-dark text-light">gh auth status</code>
+                    </div>
+                    <div class="mb-0">
+                        <div class="text-muted fw-semibold mb-1">Configure Git credentials:</div>
+                        <code class="d-block p-2 rounded bg-dark text-light">gh auth setup-git</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Connect Account Modal -->
+<div class="modal fade" id="connectAccountModal" tabindex="-1" aria-labelledby="connectAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6" id="connectAccountModalLabel">
+                    <i class="bi bi-github me-1"></i> Connect GitHub Account
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">
+                    To maintain maximum security, GitHub authentication is initiated directly via GitHub CLI's secure browser login flow.
+                </p>
+                <ol class="small ps-3 mb-3">
+                    <li class="mb-2">Open PowerShell or Terminal on this machine.</li>
+                    <li class="mb-2">Run the following command to authenticate a new account:
+                        <div class="input-group my-2">
+                            <input type="text" class="form-control form-control-sm font-monospace" value="gh auth login --hostname github.com --web" readonly id="ghLoginCmd" />
+                            <button class="btn btn-sm btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('ghLoginCmd').value);">
+                                <i class="bi bi-clipboard"></i> Copy
+                            </button>
+                        </div>
+                    </li>
+                    <li class="mb-1">Complete the one-time browser authorization.</li>
+                    <li>Click <strong>Refresh Accounts</strong> to sync.</li>
+                </ol>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a asp-action="Index" class="btn btn-sm btn-primary">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
