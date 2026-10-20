@@ -42,3 +42,9 @@ appsettings.Secrets.json
 appsettings.Development.json
 *.secrets
 *.key
+
+# Published Windows application
+publish/LGMS_Desktop/
+
+# Release ZIP
+docs/downloads/LGMS-Desktop-Windows-x64.zip
