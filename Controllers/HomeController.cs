@@ -156,6 +156,18 @@ public class HomeController : Controller
         }
     }
 
+    [HttpGet("docs")]
+    [HttpGet("landing")]
+    public IActionResult Showcase()
+    {
+        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html");
+        if (System.IO.File.Exists(filePath))
+        {
+            return PhysicalFile(filePath, "text/html");
+        }
+        return Redirect("/docs/index.html");
+    }
+
     public IActionResult Error()
     {
         return View();

@@ -9,11 +9,16 @@ public class GitController : Controller
 {
     private readonly IGitService _gitService;
     private readonly IRepositoryScanner _scanner;
+    private readonly IAICommitManager _aiManager;
 
-    public GitController(IGitService gitService, IRepositoryScanner scanner)
+    public GitController(
+        IGitService gitService,
+        IRepositoryScanner scanner,
+        IAICommitManager aiManager)
     {
         _gitService = gitService;
         _scanner = scanner;
+        _aiManager = aiManager;
     }
 
     [HttpGet("repository/{id}/changes")]
@@ -154,6 +159,40 @@ public class GitController : Controller
     {
         var result = await _gitService.CommitAsync(request.Path, request.Message);
         return Json(result);
+    }
+
+    [HttpPost("api/git/generate-commit-message")]
+    public async Task<IActionResult> GenerateCommitMessage([FromBody] GitAutoCommitRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Path))
+        {
+            return BadRequest(new { success = false, error = "Path is required." });
+        }
+
+        var sessionProvider = HttpContext.Session.GetString("ActiveAiProvider");
+        var sessionModel = HttpContext.Session.GetString("SelectedAiModel");
+
+        var provider = !string.IsNullOrWhiteSpace(request.Provider) ? request.Provider : sessionProvider;
+        var model = !string.IsNullOrWhiteSpace(request.Model) ? request.Model : sessionModel;
+
+        var result = await _aiManager.GenerateCommitMessageAsync(
+            request.Path,
+            provider,
+            model,
+            request.IncludeUnstaged,
+            request.Prompt,
+            ct);
+
+        return Json(result);
+    }
+
+    [HttpGet("api/git/ai-models")]
+    public IActionResult GetAiModels()
+    {
+        var models = _aiManager.GetAvailableModels();
+        var defaultProvider = HttpContext.Session.GetString("ActiveAiProvider");
+        var defaultModel = HttpContext.Session.GetString("SelectedAiModel");
+        return Json(new { success = true, models, defaultProvider, defaultModel });
     }
 
     [HttpPost("api/git/push")]
@@ -297,3 +336,14 @@ public class GitRemoteRemoveRequest
     public string Path { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
 }
+
+public class GitAutoCommitRequest
+{
+    public string Path { get; set; } = string.Empty;
+    public bool IncludeUnstaged { get; set; } = true;
+    public string? Prompt { get; set; }
+    public string? Provider { get; set; }
+    public string? Model { get; set; }
+}
+
+

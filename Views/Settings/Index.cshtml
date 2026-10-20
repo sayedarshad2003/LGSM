@@ -1,4 +1,7 @@
 @model LGMS.Models.WorkspaceSettings
+@inject Microsoft.Extensions.Options.IOptions<LGMS.Models.DeepSeekOptions> DeepSeekOptions
+@inject Microsoft.Extensions.Options.IOptions<LGMS.Models.GeminiOptions> GeminiOptions
+@inject LGMS.Services.IAICommitManager AICommitManager
 @{
     ViewData["Title"] = "Settings";
 }
@@ -40,7 +43,7 @@
             </div>
 
             <!-- Git Executable Settings -->
-            <div class="card border-0 shadow-sm bg-card">
+            <div class="card border-0 shadow-sm bg-card mb-4">
                 <div class="card-header bg-transparent border-bottom py-3">
                     <h5 class="fw-semibold mb-0"><i class="bi bi-git me-2 text-danger"></i> Git Executable</h5>
                 </div>
@@ -52,6 +55,146 @@
                             <button class="btn btn-outline-secondary" onclick="detectGit()">Detect Git</button>
                         </div>
                         <div class="form-text fs-xs text-muted">System version: <span class="badge bg-secondary-subtle text-secondary" id="git-version-badge">@ViewBag.GitVersion</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Commit Generation & Model Selection -->
+            <div class="card border-0 shadow-sm bg-card">
+                <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-semibold mb-0">
+                        <i class="bi bi-robot me-2 text-primary"></i> AI Commit Generator & Models
+                    </h5>
+                    @{
+                        var ds = DeepSeekOptions.Value ?? new LGMS.Models.DeepSeekOptions();
+                        var gemini = GeminiOptions.Value ?? new LGMS.Models.GeminiOptions();
+                        bool hasGeminiKey = gemini.HasApiKey;
+                        bool hasDsKey = ds.HasApiKey;
+                    }
+                    <div class="d-flex align-items-center gap-1">
+                        @if (hasGeminiKey)
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle fs-xs">
+                                <i class="bi bi-google me-1"></i> Gemini
+                            </span>
+                        }
+                        @if (hasDsKey)
+                        {
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-xs">
+                                <i class="bi bi-cpu me-1"></i> DeepSeek
+                            </span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted fs-sm mb-3">
+                        Auto-generate conventional Git commit messages based on diffs, staged files, and commit history context.
+                        Choose your preferred AI provider and model below, or configure API keys in <code>appsettings.json</code>.
+                    </p>
+
+                    <!-- Active AI Provider Selection -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold fs-sm mb-2">Active AI Provider</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="form-check form-check-inline border rounded p-2 px-3 bg-subtle mb-0">
+                                <input class="form-check-input" type="radio" name="aiProviderRadio" id="providerGemini" value="Gemini" @(string.Equals(Model.ActiveAiProvider, "Gemini", StringComparison.OrdinalIgnoreCase) ? "checked" : "") onchange="onAiProviderChanged('Gemini')">
+                                <label class="form-check-label fw-medium fs-sm" for="providerGemini">
+                                    <i class="bi bi-google text-danger me-1"></i> Google Gemini
+                                    @if (hasGeminiKey)
+                                    {
+                                        <span class="badge bg-success-subtle text-success ms-1 fs-xs">Key Set</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning ms-1 fs-xs">No Key</span>
+                                    }
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline border rounded p-2 px-3 bg-subtle mb-0">
+                                <input class="form-check-input" type="radio" name="aiProviderRadio" id="providerDeepSeek" value="DeepSeek" @(string.Equals(Model.ActiveAiProvider, "DeepSeek", StringComparison.OrdinalIgnoreCase) ? "checked" : "") onchange="onAiProviderChanged('DeepSeek')">
+                                <label class="form-check-label fw-medium fs-sm" for="providerDeepSeek">
+                                    <i class="bi bi-cpu text-info me-1"></i> DeepSeek AI
+                                    @if (hasDsKey)
+                                    {
+                                        <span class="badge bg-success-subtle text-success ms-1 fs-xs">Key Set</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning ms-1 fs-xs">No Key</span>
+                                    }
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Model Selection -->
+                    <div class="mb-4">
+                        <label for="settingsAiModel" class="form-label fw-semibold fs-sm mb-1">Model Selection</label>
+                        <select class="form-select font-monospace fs-sm" id="settingsAiModel">
+                            <!-- Populated dynamically via JavaScript -->
+                        </select>
+                        <div class="form-text fs-xs text-muted" id="modelHelpText">
+                            Select the AI model used to generate conventional commit title and bullet details.
+                        </div>
+                    </div>
+
+                    <!-- Provider Details & Diagnostics -->
+                    <div class="row g-3">
+                        <!-- Google Gemini Status & Test -->
+                        <div class="col-12 col-md-6">
+                            <div class="border rounded p-3 bg-subtle h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="fw-semibold fs-sm"><i class="bi bi-google text-danger me-1"></i> Google Gemini</div>
+                                        @if (hasGeminiKey)
+                                        {
+                                            <span class="badge bg-success-subtle text-success fs-xs">Configured</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning fs-xs">Key Missing</span>
+                                        }
+                                    </div>
+                                    <div class="fs-xs text-muted mb-2 font-monospace text-truncate" title="@gemini.BaseUrl">
+                                        @gemini.BaseUrl
+                                    </div>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 w-100 justify-content-center" id="btn-test-gemini" onclick="testGeminiConnection()">
+                                        <i class="bi bi-broadcast"></i> <span id="btn-test-gemini-text">Test Gemini API</span>
+                                    </button>
+                                    <div id="gemini-test-result" class="mt-2 fs-xs d-none"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DeepSeek Status & Test -->
+                        <div class="col-12 col-md-6">
+                            <div class="border rounded p-3 bg-subtle h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="fw-semibold fs-sm"><i class="bi bi-cpu text-info me-1"></i> DeepSeek AI</div>
+                                        @if (hasDsKey)
+                                        {
+                                            <span class="badge bg-success-subtle text-success fs-xs">Configured</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning fs-xs">Key Missing</span>
+                                        }
+                                    </div>
+                                    <div class="fs-xs text-muted mb-2 font-monospace text-truncate" title="@ds.BaseUrl">
+                                        @ds.BaseUrl
+                                    </div>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-info d-flex align-items-center gap-1 w-100 justify-content-center" id="btn-test-deepseek" onclick="testDeepSeekConnection()">
+                                        <i class="bi bi-broadcast"></i> <span id="btn-test-deepseek-text">Test DeepSeek API</span>
+                                    </button>
+                                    <div id="deepseek-test-result" class="mt-2 fs-xs d-none"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -171,6 +314,46 @@
         }
     }
 
+    const aiModelsByProvider = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(AICommitManager.GetAvailableModels()));
+    let selectedProvider = '@(Model.ActiveAiProvider ?? "Gemini")';
+    let currentModel = '@(Model.SelectedAiModel ?? "gemini-3.5-flash-lite")';
+
+    function populateAiModels(provider, modelToSelect) {
+        const select = document.getElementById('settingsAiModel');
+        if (!select) return;
+        select.innerHTML = '';
+
+        const models = aiModelsByProvider[provider] || [];
+        models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            if (m === modelToSelect) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+
+        if (!select.value && select.options.length > 0) {
+            select.selectedIndex = 0;
+        }
+    }
+
+    function onAiProviderChanged(provider) {
+        selectedProvider = provider;
+        populateAiModels(provider, null);
+        const help = document.getElementById('modelHelpText');
+        if (help) {
+            help.textContent = provider === 'Gemini'
+                ? 'Google Gemini models: gemini-3.5-flash-lite is ultra-fast & recommended; gemini-3.8-flash provides advanced reasoning.'
+                : 'DeepSeek models: deepseek-chat is powered by DeepSeek-V3; deepseek-reasoner is powered by DeepSeek-R1.';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        populateAiModels(selectedProvider, currentModel);
+    });
+
     async function saveSettings() {
         const settings = {
             workingFolder: document.getElementById('settingsWorkingFolder').value.trim(),
@@ -178,7 +361,9 @@
             theme: document.querySelector('input[name="themeRadio"]:checked')?.value || 'dark',
             restoreLastRepository: document.getElementById('chkRestoreLastRepo').checked,
             autoScanRepositories: document.getElementById('chkAutoScan').checked,
-            rememberWorkingFolder: document.getElementById('chkRememberFolder').checked
+            rememberWorkingFolder: document.getElementById('chkRememberFolder').checked,
+            activeAiProvider: document.querySelector('input[name="aiProviderRadio"]:checked')?.value || selectedProvider,
+            selectedAiModel: document.getElementById('settingsAiModel')?.value || currentModel
         };
 
         try {
@@ -196,6 +381,74 @@
             }
         } catch (e) {
             LGMS.toast("Save error", "error");
+        }
+    }
+
+    async function testGeminiConnection() {
+        const btn = document.getElementById('btn-test-gemini');
+        const btnText = document.getElementById('btn-test-gemini-text');
+        const resultDiv = document.getElementById('gemini-test-result');
+        const model = document.getElementById('settingsAiModel')?.value || 'gemini-3.5-flash-lite';
+
+        btn.disabled = true;
+        btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Testing...';
+        resultDiv.className = 'mt-2 fs-xs text-muted';
+        resultDiv.classList.remove('d-none');
+        resultDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Connecting to Google Gemini API...';
+
+        try {
+            const res = await fetch(`/api/settings/test-gemini?model=${encodeURIComponent(model)}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                resultDiv.className = 'mt-2 fs-xs text-success';
+                resultDiv.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ${data.message}`;
+                LGMS.toast("✓ Google Gemini API connected successfully!", "success");
+            } else {
+                resultDiv.className = 'mt-2 fs-xs text-warning';
+                resultDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> ${data.message}`;
+                LGMS.toast(data.message, "warning");
+            }
+        } catch (e) {
+            resultDiv.className = 'mt-2 fs-xs text-danger';
+            resultDiv.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> Request error: ${e.message}`;
+            LGMS.toast("Test request failed", "error");
+        } finally {
+            btn.disabled = false;
+            btnText.innerHTML = 'Test Gemini API';
+        }
+    }
+
+    async function testDeepSeekConnection() {
+        const btn = document.getElementById('btn-test-deepseek');
+        const btnText = document.getElementById('btn-test-deepseek-text');
+        const resultDiv = document.getElementById('deepseek-test-result');
+        const model = document.getElementById('settingsAiModel')?.value || 'deepseek-chat';
+
+        btn.disabled = true;
+        btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Testing...';
+        resultDiv.className = 'mt-2 fs-xs text-muted';
+        resultDiv.classList.remove('d-none');
+        resultDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Connecting to DeepSeek API...';
+
+        try {
+            const res = await fetch(`/api/settings/test-deepseek?model=${encodeURIComponent(model)}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                resultDiv.className = 'mt-2 fs-xs text-success';
+                resultDiv.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ${data.message}`;
+                LGMS.toast("✓ DeepSeek API connected successfully!", "success");
+            } else {
+                resultDiv.className = 'mt-2 fs-xs text-warning';
+                resultDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> ${data.message}`;
+                LGMS.toast(data.message, "warning");
+            }
+        } catch (e) {
+            resultDiv.className = 'mt-2 fs-xs text-danger';
+            resultDiv.innerHTML = `<i class="bi bi-x-circle-fill me-1"></i> Request error: ${e.message}`;
+            LGMS.toast("Test request failed", "error");
+        } finally {
+            btn.disabled = false;
+            btnText.innerHTML = 'Test DeepSeek API';
         }
     }
 </script>

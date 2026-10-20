@@ -7,6 +7,7 @@ using LGMS.Desktop.Common;
 using LGMS.Desktop.Services;
 using LGMS.Models;
 using LGMS.Services;
+using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 
 namespace LGMS.Desktop.ViewModels;
@@ -18,6 +19,26 @@ public class MainViewModel : ObservableObject
     private readonly IProcessService _processService;
     private readonly ISettingsService _settingsService;
     private readonly GitHubCliService _githubCliService;
+    private readonly IAICommitManager? _aiManager;
+    private readonly GeminiOptions? _geminiOptions;
+    private readonly DeepSeekOptions? _deepSeekOptions;
+    private readonly AIOptions? _aiOptions;
+
+    // AI Commit Generation fields
+    private ObservableCollection<string> _availableAiProviders = new();
+    private string _selectedAiProvider = "Gemini";
+    private ObservableCollection<string> _availableAiModels = new();
+    private string _selectedAiModel = "gemini-3.5-flash-lite";
+    private bool _isAiGenerating;
+    private string _aiStatusMessage = string.Empty;
+    private string _aiStatusSeverity = "info"; // info, success, warning, error
+
+    // AI Settings fields
+    private string _geminiApiKeyInput = string.Empty;
+    private string _deepSeekApiKeyInput = string.Empty;
+    private bool _isAiTesting;
+    private string _aiTestStatus = string.Empty;
+    private string _aiTestSeverity = "info";
 
     private string _workspacePath = string.Empty;
     private string _searchFilter = string.Empty;
@@ -70,18 +91,29 @@ public class MainViewModel : ObservableObject
         IRepositoryScanner scanner,
         IProcessService processService,
         ISettingsService settingsService,
-        GitHubCliService githubCliService)
+        GitHubCliService githubCliService,
+        IAICommitManager? aiManager = null,
+        IOptions<GeminiOptions>? geminiOptions = null,
+        IOptions<DeepSeekOptions>? deepSeekOptions = null,
+        IOptions<AIOptions>? aiOptions = null)
     {
         _gitService = gitService;
         _scanner = scanner;
         _processService = processService;
         _settingsService = settingsService;
         _githubCliService = githubCliService;
+        _aiManager = aiManager;
+        _geminiOptions = geminiOptions?.Value;
+        _deepSeekOptions = deepSeekOptions?.Value;
+        _aiOptions = aiOptions?.Value;
 
         AllRepositories = new ObservableCollection<Repository>();
         FilteredRepositories = new ObservableCollection<Repository>();
         StagedChanges = new ObservableCollection<GitChangeItemViewModel>();
         UnstagedChanges = new ObservableCollection<GitChangeItemViewModel>();
+
+        // Init AI Setup
+        InitializeAiProvidersAndModels();
 
         // Init Commands
         BrowseFolderCommand = new AsyncRelayCommand(BrowseFolderAsync);
@@ -101,6 +133,10 @@ public class MainViewModel : ObservableObject
 
         CommitCommand = new AsyncRelayCommand(CommitAsync);
         CommitAndPushCommand = new AsyncRelayCommand(CommitAndPushAsync);
+
+        AutoGenerateCommitCommand = new AsyncRelayCommand(AutoGenerateCommitAsync);
+        TestAiConnectionCommand = new AsyncRelayCommand(p => TestAiConnectionAsync(p as string));
+        SaveAiSettingsCommand = new RelayCommand(SaveAiSettings);
 
         CheckoutBranchCommand = new AsyncRelayCommand(p => CheckoutBranchAsync(p as string));
         CreateBranchCommand = new AsyncRelayCommand(p => CreateBranchAsync(p as string));
@@ -281,6 +317,86 @@ public class MainViewModel : ObservableObject
         set => SetProperty(ref _commitDescription, value);
     }
 
+    // AI Commit Generation & Selection Properties
+    public ObservableCollection<string> AvailableAiProviders
+    {
+        get => _availableAiProviders;
+        set => SetProperty(ref _availableAiProviders, value);
+    }
+
+    public string SelectedAiProvider
+    {
+        get => _selectedAiProvider;
+        set
+        {
+            if (SetProperty(ref _selectedAiProvider, value))
+            {
+                UpdateAiModelsForProvider(value);
+            }
+        }
+    }
+
+    public ObservableCollection<string> AvailableAiModels
+    {
+        get => _availableAiModels;
+        set => SetProperty(ref _availableAiModels, value);
+    }
+
+    public string SelectedAiModel
+    {
+        get => _selectedAiModel;
+        set => SetProperty(ref _selectedAiModel, value);
+    }
+
+    public bool IsAiGenerating
+    {
+        get => _isAiGenerating;
+        set => SetProperty(ref _isAiGenerating, value);
+    }
+
+    public string AiStatusMessage
+    {
+        get => _aiStatusMessage;
+        set => SetProperty(ref _aiStatusMessage, value);
+    }
+
+    public string AiStatusSeverity
+    {
+        get => _aiStatusSeverity;
+        set => SetProperty(ref _aiStatusSeverity, value);
+    }
+
+    // AI Settings Properties
+    public string GeminiApiKeyInput
+    {
+        get => _geminiApiKeyInput;
+        set => SetProperty(ref _geminiApiKeyInput, value);
+    }
+
+    public string DeepSeekApiKeyInput
+    {
+        get => _deepSeekApiKeyInput;
+        set => SetProperty(ref _deepSeekApiKeyInput, value);
+    }
+
+    public bool IsAiTesting
+    {
+        get => _isAiTesting;
+        set => SetProperty(ref _isAiTesting, value);
+    }
+
+    public string AiTestStatus
+    {
+        get => _aiTestStatus;
+        set => SetProperty(ref _aiTestStatus, value);
+    }
+
+    public string AiTestSeverity
+    {
+        get => _aiTestSeverity;
+        set => SetProperty(ref _aiTestSeverity, value);
+    }
+
     public GitChangeItemViewModel? SelectedChange
     {
         get => _selectedChange;
@@ -437,6 +553,9 @@ public class MainViewModel : ObservableObject
     public ICommand DiscardSelectedCommand { get; }
     public ICommand CommitCommand { get; }
     public ICommand CommitAndPushCommand { get; }
+    public ICommand AutoGenerateCommitCommand { get; }
+    public ICommand TestAiConnectionCommand { get; }
+    public ICommand SaveAiSettingsCommand { get; }
     public ICommand CheckoutBranchCommand { get; }
     public ICommand CreateBranchCommand { get; }
     public ICommand DeleteBranchCommand { get; }
@@ -499,6 +618,22 @@ public class MainViewModel : ObservableObject
             var emailRes = await _processService.ExecuteAsync("git", new[] { "config", "--global", "user.email" }, Environment.CurrentDirectory);
             if (emailRes.Success) GitUserEmail = emailRes.StandardOutput.Trim();
 
+            // Load saved AI Preferences
+            if (!string.IsNullOrWhiteSpace(savedSettings.ActiveAiProvider))
+            {
+                SelectedAiProvider = savedSettings.ActiveAiProvider;
+            }
+            if (!string.IsNullOrWhiteSpace(savedSettings.SelectedAiModel))
+            {
+                SelectedAiModel = savedSettings.SelectedAiModel;
+            }
+            GeminiApiKeyInput = !string.IsNullOrWhiteSpace(savedSettings.GeminiApiKey)
+                ? savedSettings.GeminiApiKey
+                : (_geminiOptions?.ApiKey ?? string.Empty);
+            DeepSeekApiKeyInput = !string.IsNullOrWhiteSpace(savedSettings.DeepSeekApiKey)
+                ? savedSettings.DeepSeekApiKey
+                : (_deepSeekOptions?.ApiKey ?? string.Empty);
+
             // Set initial workspace path
             if (Directory.Exists(DefaultWorkspacePath))
             {
@@ -530,7 +665,11 @@ public class MainViewModel : ObservableObject
         {
             WorkingFolder = DefaultWorkspacePath,
             Theme = CurrentTheme,
-            AutoScanRepositories = AutoScanOnStartup
+            AutoScanRepositories = AutoScanOnStartup,
+            ActiveAiProvider = SelectedAiProvider,
+            SelectedAiModel = SelectedAiModel,
+            GeminiApiKey = GeminiApiKeyInput,
+            DeepSeekApiKey = DeepSeekApiKeyInput
         };
 
         _settingsService.SaveSettings(settings);
@@ -1473,5 +1612,196 @@ public class MainViewModel : ObservableObject
     {
         StatusMessage = message;
         StatusSeverity = severity;
+    }
+
+    // AI Implementation Methods
+    private void InitializeAiProvidersAndModels()
+    {
+        if (_aiManager != null)
+        {
+            var providers = _aiManager.GetAllProviders().Select(p => p.ProviderName).ToList();
+            if (providers.Count == 0)
+            {
+                providers.Add("Gemini");
+                providers.Add("DeepSeek");
+            }
+            AvailableAiProviders = new ObservableCollection<string>(providers);
+        }
+        else
+        {
+            AvailableAiProviders = new ObservableCollection<string> { "Gemini", "DeepSeek" };
+        }
+
+        UpdateAiModelsForProvider(_selectedAiProvider);
+    }
+
+    private void UpdateAiModelsForProvider(string provider)
+    {
+        var models = new List<string>();
+        if (_aiManager != null)
+        {
+            models = _aiManager.GetSupportedModels(provider).ToList();
+        }
+
+        if (models.Count == 0)
+        {
+            if (string.Equals(provider, "Gemini", StringComparison.OrdinalIgnoreCase))
+            {
+                models = new List<string>
+                {
+                    "gemini-3.5-flash-lite",
+                    "gemini-flash-lite-latest",
+                    "gemini-3.8-flash",
+                    "gemini-3.5-flash",
+                    "gemini-3.7-flash",
+                    "gemini-3.6-flash",
+                    "gemini-3.1-flash-lite",
+                    "gemini-flash-latest",
+                    "gemini-pro-latest",
+                    "gemini-3.1-pro-preview",
+                    "gemini-4-argon",
+                    "gemini-2.0-flash",
+                    "gemini-1.5-flash",
+                    "gemini-1.5-pro"
+                };
+            }
+            else
+            {
+                models = new List<string> { "deepseek-chat", "deepseek-reasoner" };
+            }
+        }
+
+        AvailableAiModels = new ObservableCollection<string>(models);
+        if (!AvailableAiModels.Contains(SelectedAiModel))
+        {
+            SelectedAiModel = AvailableAiModels.FirstOrDefault() ?? string.Empty;
+        }
+    }
+
+    public async Task AutoGenerateCommitAsync()
+    {
+        if (ActiveRepository == null)
+        {
+            AiStatusMessage = "Please select a repository first.";
+            AiStatusSeverity = "warning";
+            return;
+        }
+
+        if (_aiManager == null)
+        {
+            AiStatusMessage = "AI Commit Service is not initialized.";
+            AiStatusSeverity = "error";
+            return;
+        }
+
+        IsAiGenerating = true;
+        AiStatusMessage = $"Analyzing Git diff & requesting commit from {SelectedAiProvider} ({SelectedAiModel})...";
+        AiStatusSeverity = "info";
+
+        try
+        {
+            var result = await _aiManager.GenerateCommitMessageAsync(
+                ActiveRepository.Path,
+                SelectedAiProvider,
+                SelectedAiModel,
+                includeUnstaged: true);
+
+            if (result.Success)
+            {
+                CommitSubject = result.Title ?? string.Empty;
+                CommitDescription = result.Description ?? string.Empty;
+
+                if (result.UsedFallback)
+                {
+                    AiStatusSeverity = "warning";
+                    AiStatusMessage = $"Generated via local heuristic fallback: {result.Warning ?? result.Error}";
+                }
+                else
+                {
+                    AiStatusSeverity = "success";
+                    var truncatedNotice = result.DiffTruncated ? " [Diff truncated for token limits]" : "";
+                    AiStatusMessage = $"✓ Generated via {result.Provider} ({result.Model}) in {result.DurationMs}ms{truncatedNotice}";
+                }
+            }
+            else
+            {
+                AiStatusSeverity = "error";
+                AiStatusMessage = $"AI Generation Error: {result.Error ?? "Could not generate commit message."}";
+            }
+        }
+        catch (Exception ex)
+        {
+            AiStatusSeverity = "error";
+            AiStatusMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsAiGenerating = false;
+        }
+    }
+
+    public async Task TestAiConnectionAsync(string? provider)
+    {
+        var targetProvider = string.IsNullOrWhiteSpace(provider) ? SelectedAiProvider : provider;
+
+        if (_aiManager == null)
+        {
+            AiTestStatus = "AI manager service not available.";
+            AiTestSeverity = "error";
+            return;
+        }
+
+        IsAiTesting = true;
+        AiTestStatus = $"Connecting to {targetProvider} API using model '{SelectedAiModel}'...";
+        AiTestSeverity = "info";
+
+        try
+        {
+            var (success, message) = await _aiManager.TestConnectionAsync(targetProvider, SelectedAiModel);
+            AiTestStatus = message;
+            AiTestSeverity = success ? "success" : "error";
+        }
+        catch (Exception ex)
+        {
+            AiTestStatus = $"Test failed: {ex.Message}";
+            AiTestSeverity = "error";
+        }
+        finally
+        {
+            IsAiTesting = false;
+        }
+    }
+
+    public void SaveAiSettings()
+    {
+        try
+        {
+            var settings = _settingsService.LoadSettings();
+            settings.ActiveAiProvider = SelectedAiProvider;
+            settings.SelectedAiModel = SelectedAiModel;
+            settings.GeminiApiKey = GeminiApiKeyInput;
+            settings.DeepSeekApiKey = DeepSeekApiKeyInput;
+            _settingsService.SaveSettings(settings);
+
+            // Update in-memory options if instances present
+            if (_geminiOptions != null) _geminiOptions.ApiKey = GeminiApiKeyInput;
+            if (_deepSeekOptions != null) _deepSeekOptions.ApiKey = DeepSeekApiKeyInput;
+
+            // Also notify concrete service instances if available
+            var geminiService = _aiManager?.GetProvider("Gemini") as GeminiCommitService;
+            geminiService?.UpdateApiKey(GeminiApiKeyInput);
+
+            var deepSeekService = _aiManager?.GetProvider("DeepSeek") as DeepSeekCommitService;
+            deepSeekService?.UpdateApiKey(DeepSeekApiKeyInput);
+
+            AiTestStatus = "✓ AI settings saved successfully.";
+            AiTestSeverity = "success";
+            SetNotification("AI settings saved successfully.", "success");
+        }
+        catch (Exception ex)
+        {
+            AiTestStatus = $"Save error: {ex.Message}";
+            AiTestSeverity = "error";
+        }
     }
 }

@@ -21,6 +21,9 @@
             <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="location.reload();">
                 <i class="bi bi-arrow-clockwise"></i> <span>Refresh</span>
             </button>
+            <button class="btn btn-outline-primary d-flex align-items-center gap-1 shadow-sm" onclick="openCommitModalWithAi()" title="Open commit modal and auto-generate commit message using DeepSeek AI">
+                <i class="bi bi-stars text-warning"></i> <span>AI Commit</span>
+            </button>
             <button class="btn btn-primary d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#commitModal">
                 <i class="bi bi-check2-square"></i> <span>Commit (@status.StagedChanges.Count)</span>
             </button>
@@ -167,16 +170,21 @@
 <div class="modal fade" id="commitModal" tabindex="-1" aria-labelledby="commitModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg bg-card">
-            <div class="modal-header border-bottom">
-                <h5 class="modal-title fw-bold" id="commitModalLabel">
-                    <i class="bi bi-git me-2 text-primary"></i> Commit Staged Changes
-                </h5>
+            <div class="modal-header border-bottom d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="modal-title fw-bold mb-0" id="commitModalLabel">
+                        <i class="bi bi-git me-2 text-primary"></i> Commit Staged Changes
+                    </h5>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-xs d-flex align-items-center gap-1" id="commitModalAiBadge">
+                        <i class="bi bi-stars text-warning"></i> AI Auto-Commit
+                    </span>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label fw-semibold fs-sm">Staged Changes (@status.StagedChanges.Count)</label>
-                    <div class="border rounded p-2 bg-subtle" style="max-height: 180px; overflow-y: auto;">
+                    <div class="border rounded p-2 bg-subtle" style="max-height: 160px; overflow-y: auto;">
                         @if (status.StagedChanges.Any())
                         {
                             <ul class="list-unstyled mb-0 font-monospace fs-xs">
@@ -200,9 +208,45 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="commitMessageInput" class="form-label fw-semibold fs-sm">Commit Message <span class="text-danger">*</span></label>
-                    <textarea class="form-control font-monospace fs-sm" id="commitMessageInput" rows="4" placeholder="feat: enhance ASP.NET application with bulk import&#10;&#10;Explain what problem this commit solves..."></textarea>
-                    <div class="form-text fs-xs text-muted">First line should be concise conventional commit format (e.g. feat:, fix:, docs:)</div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-1 gap-2">
+                        <label for="commitMessageInput" class="form-label fw-semibold fs-sm mb-0">
+                            Commit Message <span class="text-danger">*</span>
+                        </label>
+                        <div class="d-flex align-items-center gap-1">
+                            <select class="form-select form-select-sm py-0 px-2 font-monospace fs-xs" id="commitAiProvider" style="width: auto;" onchange="onCommitProviderChanged(this.value)" title="Choose AI Provider">
+                                <option value="Gemini">Gemini</option>
+                                <option value="DeepSeek">DeepSeek</option>
+                            </select>
+                            <select class="form-select form-select-sm py-0 px-2 font-monospace fs-xs" id="commitAiModel" style="width: auto; max-width: 170px;" title="Choose AI Model">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 py-1 px-2 shadow-sm" id="btn-ai-generate" onclick="generateAiCommitMessage()" title="Auto generate commit message using AI">
+                                <i class="bi bi-stars text-warning"></i>
+                                <span id="btn-ai-text">Generate (AI)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AI Generation & Limitations Diagnostics Box -->
+                    <div id="ai-status-box" class="alert py-2 px-3 fs-xs mb-2 d-none" role="alert">
+                        <div class="d-flex align-items-start gap-2">
+                            <span id="ai-status-icon"><i class="bi bi-info-circle-fill"></i></span>
+                            <div class="flex-grow-1">
+                                <span id="ai-status-msg" class="fw-medium"></span>
+                                <div id="ai-status-details" class="text-muted mt-1" style="font-size: 0.75rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <textarea class="form-control font-monospace fs-sm" id="commitMessageInput" rows="5" placeholder="feat: enhance ASP.NET application with bulk import&#10;&#10;- Explain what problem this commit solves&#10;- Detail key architectural updates..."></textarea>
+                    
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-1 mt-1">
+                        <div class="form-text fs-xs text-muted mb-0">Format: conventional commit title (<code>type(scope): ...</code>) + blank line + detailed bullets</div>
+                        <div class="form-check form-check-inline fs-xs text-muted me-0 mb-0">
+                            <input class="form-check-input" type="checkbox" id="chkIncludeUnstaged" checked>
+                            <label class="form-check-label" for="chkIncludeUnstaged" title="If checked, AI also checks unstaged changes if no staged files exist">Analyze unstaged if empty</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer border-top">
@@ -447,6 +491,162 @@
         } catch (e) {
             LGMS.hideLoading();
             LGMS.toast("Commit request error", "error");
+        }
+    }
+
+    const commitAiModels = {
+        'Gemini': [
+            'gemini-3.5-flash-lite',
+            'gemini-flash-lite-latest',
+            'gemini-3.8-flash',
+            'gemini-3.5-flash',
+            'gemini-3.7-flash',
+            'gemini-3.6-flash',
+            'gemini-3.1-flash-lite',
+            'gemini-flash-latest',
+            'gemini-pro-latest',
+            'gemini-3.1-pro-preview',
+            'gemini-4-argon',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro'
+        ],
+        'DeepSeek': ['deepseek-chat', 'deepseek-reasoner']
+    };
+
+    function initCommitAiDropdowns() {
+        const providerSel = document.getElementById('commitAiProvider');
+        if (!providerSel) return;
+
+        // Try getting preferred provider from settings in localStorage
+        try {
+            const saved = JSON.parse(localStorage.getItem('lgms_settings') || '{}');
+            if (saved.activeAiProvider && commitAiModels[saved.activeAiProvider]) {
+                providerSel.value = saved.activeAiProvider;
+            }
+        } catch (e) {}
+
+        onCommitProviderChanged(providerSel.value);
+    }
+
+    function onCommitProviderChanged(provider) {
+        const modelSel = document.getElementById('commitAiModel');
+        if (!modelSel) return;
+        modelSel.innerHTML = '';
+
+        const models = commitAiModels[provider] || [];
+        models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            modelSel.appendChild(opt);
+        });
+
+        // Set badge
+        const badge = document.getElementById('commitModalAiBadge');
+        if (badge) {
+            badge.innerHTML = `<i class="bi bi-stars text-warning"></i> ${provider} AI`;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initCommitAiDropdowns();
+    });
+
+    function openCommitModalWithAi() {
+        const modalEl = document.getElementById('commitModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+        initCommitAiDropdowns();
+        setTimeout(() => generateAiCommitMessage(), 250);
+    }
+
+    async function generateAiCommitMessage() {
+        const btn = document.getElementById('btn-ai-generate');
+        const btnText = document.getElementById('btn-ai-text');
+        const statusBox = document.getElementById('ai-status-box');
+        const statusMsg = document.getElementById('ai-status-msg');
+        const statusDetails = document.getElementById('ai-status-details');
+        const input = document.getElementById('commitMessageInput');
+        const includeUnstaged = document.getElementById('chkIncludeUnstaged')?.checked ?? true;
+        const provider = document.getElementById('commitAiProvider')?.value || 'Gemini';
+        const model = document.getElementById('commitAiModel')?.value || '';
+
+        if (!btn || !btnText) return;
+
+        const originalText = btnText.innerHTML;
+        btn.disabled = true;
+        btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Generating...';
+
+        if (statusBox) {
+            statusBox.className = 'alert alert-info py-2 px-3 fs-xs mb-2';
+            statusBox.classList.remove('d-none');
+            statusMsg.innerHTML = `<i class="bi bi-cpu me-1"></i> Analyzing changes vs last commit & requesting ${provider} (${model || 'default'})...`;
+            statusDetails.innerHTML = '';
+        }
+
+        try {
+            const res = await fetch('/api/git/generate-commit-message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: repoPath,
+                    includeUnstaged: includeUnstaged,
+                    provider: provider,
+                    model: model
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success && data.fullMessage) {
+                input.value = data.fullMessage;
+
+                document.getElementById('btn-commit')?.removeAttribute('disabled');
+                document.getElementById('btn-commit-push')?.removeAttribute('disabled');
+
+                if (statusBox) {
+                    if (data.usedFallback) {
+                        statusBox.className = 'alert alert-warning py-2 px-3 fs-xs mb-2';
+                        statusMsg.innerHTML = '<i class="bi bi-lightbulb-fill me-1 text-warning"></i> Generated using local smart heuristic.';
+                        statusDetails.innerHTML = `${provider} API key not found in <code>appsettings.json</code>. Add your key to enable ${provider} AI analysis.`;
+                    } else {
+                        statusBox.className = 'alert alert-success py-2 px-3 fs-xs mb-2';
+                        statusMsg.innerHTML = `<i class="bi bi-check-circle-fill me-1 text-success"></i> Generated using ${data.provider || provider} (${data.model || model}) in ${data.durationMs || 0}ms.`;
+
+                        let details = [];
+                        if (data.lastCommitHash) {
+                            details.push(`Context: compared vs last commit <code>${data.lastCommitHash.substring(0, 7)}</code>`);
+                        }
+                        if (data.firstCommitHash) {
+                            details.push(`Initial: <code>${data.firstCommitHash.substring(0, 7)}</code>`);
+                        }
+                        if (data.diffTruncated) {
+                            details.push(`<span class="text-warning">⚠ Large diff (${(data.diffLength / 1024).toFixed(1)} KB) safely truncated to token limit.</span>`);
+                        }
+                        statusDetails.innerHTML = details.join(' • ');
+                    }
+                }
+
+                LGMS.toast(`✓ ${data.provider || provider} commit message generated`, "success");
+            } else {
+                if (statusBox) {
+                    statusBox.className = 'alert alert-danger py-2 px-3 fs-xs mb-2';
+                    statusMsg.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1 text-danger"></i> ${data.error || 'Failed to auto-generate commit message.'}`;
+                    statusDetails.innerHTML = 'Ensure files have changes to commit, or verify API key in appsettings.json.';
+                }
+                LGMS.toast(data.error || "Auto-commit generation failed", "error");
+            }
+        } catch (e) {
+            if (statusBox) {
+                statusBox.className = 'alert alert-danger py-2 px-3 fs-xs mb-2';
+                statusMsg.innerHTML = '<i class="bi bi-exclamation-octagon-fill me-1 text-danger"></i> Network request error while calling AI service.';
+                statusDetails.innerHTML = e.message || 'Check browser console and backend logs.';
+            }
+            LGMS.toast("Request error generating commit message", "error");
+        } finally {
+            btn.disabled = false;
+            btnText.innerHTML = originalText;
         }
     }
 </script>

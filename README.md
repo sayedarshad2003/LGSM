@@ -1,5 +1,12 @@
 # 🚀 LGMS — Local Git Management System (.NET 9)
 
+[![Official Website](https://img.shields.io/badge/Website-LGMS%20Showcase-6366f1?style=for-the-badge&logo=googlechrome&logoColor=white)](https://sayedarshad2003.github.io/LGSM/)
+[![Download Standalone](https://img.shields.io/badge/Download-Windows%20x64%20(Zip)-10b981?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/sayedarshad2003/LGSM/releases)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-sayedarshad2003%2FLGSM-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sayedarshad2003/LGSM)
+
+> 🌐 **Official Showcase Website**: [https://sayedarshad2003.github.io/LGSM/](https://sayedarshad2003.github.io/LGSM/)  
+> (Ready for GitHub Pages from the [`docs/`](docs/) directory, or open [`docs/index.html`](docs/index.html) locally)
+
 **LGMS (Local Git Management System)** is a comprehensive, local-first Git management suite designed for developers who want a fast, secure, and modern interface for managing multiple Git repositories and multiple authenticated GitHub accounts.
 
 It offers two frontend experiences built on a shared, high-performance .NET 9 Core engine with **Microsoft SQL Server (`LGMS_DB`)** and **GitHub CLI (`gh`)** integration:

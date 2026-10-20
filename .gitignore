@@ -16,9 +16,29 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-publish/
+publish/ 
 [Bb]in/
 [Oo]bj/
 
+# Published Windows application
+publish/LGSM_Desktop/
+
+# Downloadable release ZIP
+docs/downloads/LGMS-Desktop-Windows-x64zip
+
+# Build outputs
+bin/
+obj/
+
 ## Logs
 *.log
+
+## Local Secrets & API Keys (DO NOT PUSH TO GITHUB)
+secrets.txt
+keys.txt
+api-keys.txt
+appsettings.local.json
+appsettings.Secrets.json
+appsettings.Development.json
+*.secrets
+*.key

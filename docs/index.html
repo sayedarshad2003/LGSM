@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LGMS — Local Git Management System (.NET 9)</title>
+  
+  <!-- SEO & Open Graph Meta Tags -->
+  <meta name="description" content="LGMS (Local Git Management System) is an enterprise-grade, local-first Git management suite for Windows. Features native GitHub multi-account switching, zero-token storage security, AI conventional commits, and standalone WPF desktop app.">
+  <meta name="keywords" content="LGMS, Git Management, GitHub Multi-Account, WPF Desktop, ASP.NET Core MVC, .NET 9, Conventional Commits, DeepSeek, Gemini">
+  <meta name="author" content="Sayed Arshad">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <meta property="og:title" content="LGMS — Local Git Management System (.NET 9)">
+  <meta property="og:description" content="Enterprise Git management suite with native multi-account GitHub switching and AI commit intelligence.">
+  <meta property="og:image" content="assets/preview.jpg">
+  <meta property="og:url" content="https://github.com/sayedarshad2003/LGSM">
+  <meta property="og:type" content="website">
+
+  <!-- FontAwesome 6 (CDN) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Ambient Glow Header Background -->
+  <div class="ambient-top-glow" aria-hidden="true"></div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#hero" class="brand" aria-label="LGMS Home">
+        <img src="assets/logo.png" alt="LGMS Logo" class="brand-logo-img">
+        <span class="brand-name">LGMS</span>
+        <span class="brand-badge">.NET 9</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features" class="nav-link">Features</a></li>
+          <li><a href="#workflow" class="nav-link">Workflow</a></li>
+          <li><a href="#playground" class="nav-link">Interactive Demo</a></li>
+          <li><a href="#download" class="nav-link">Download</a></li>
+          <li><a href="#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="#faq" class="nav-link">FAQ</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Theme Toggle (Light / Dark) -->
+        <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+          <i class="fa-solid fa-sun" id="theme-icon"></i>
+        </button>
+
+        <a href="https://github.com/sayedarshad2003/LGSM" target="_blank" rel="noopener noreferrer" class="btn btn-github btn-sm" aria-label="GitHub Repository">
+          <i class="fa-brands fa-github"></i>
+          <span>GitHub</span>
+        </a>
+
+        <a href="#download" class="btn btn-primary btn-sm">
+          <i class="fa-solid fa-download"></i>
+          <span>Get LGMS</span>
+        </a>
+
+        <button class="mobile-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="hero" class="hero">
+    <div class="container">
+      <div class="hero-tag">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Version 1.0.0 &bull; Built on .NET 9 with AI Smart Commits</span>
+      </div>
+
+      <h1 class="hero-title">
+        The Local-First <span class="text-gradient">Git Management Suite</span> for Windows
+      </h1>
+
+      <p class="hero-subtitle">
+        Accelerate multi-account Git operations with zero token exposure. Seamlessly switch between work and personal GitHub organizations, generate standardized Conventional Commits with AI, and work natively in high-performance WPF Desktop and ASP.NET Core environments.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#download" class="btn btn-primary btn-lg">
+          <i class="fa-solid fa-download"></i>
+          <span>Download Standalone (.zip)</span>
+        </a>
+
+        <a href="https://github.com/sayedarshad2003/LGSM" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
+          <i class="fa-brands fa-github"></i>
+          <span>View Source Repository</span>
+        </a>
+
+        <a href="#workflow" class="btn btn-secondary btn-lg">
+          <span>Workflow Guide</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </div>
+
+      <!-- Trust Bar -->
+      <div class="trust-bar">
+        <div class="trust-item">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Zero Plaintext Token Storage</span>
+        </div>
+        <div class="trust-item">
+          <i class="fa-solid fa-desktop"></i>
+          <span>Native .NET 9 WPF Standalone</span>
+        </div>
+        <div class="trust-item">
+          <i class="fa-solid fa-lock"></i>
+          <span>Mutex-Serialized Account Switching</span>
+        </div>
+        <div class="trust-item">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>AI Commit Intelligence (DeepSeek &amp; Gemini)</span>
+        </div>
+      </div>
+
+      <!-- Hero Mockup Window -->
+      <div class="hero-mockup-wrap">
+        <div class="mockup-window">
+          <div class="mockup-titlebar">
+            <div class="mockup-dots">
+              <span class="mockup-dot dot-close"></span>
+              <span class="mockup-dot dot-min"></span>
+              <span class="mockup-dot dot-max"></span>
+            </div>
+            <div class="mockup-title">
+              <i class="fa-solid fa-code-branch"></i>
+              <span>LGMS Desktop v1.0.0 &mdash; Local Git Management System (.NET 9)</span>
+            </div>
+            <div style="width: 50px;"></div>
+          </div>
+          <div class="mockup-content">
+            <img src="assets/preview.jpg" alt="LGMS Desktop Interface Preview showing Diff Viewer, GitHub Account Switcher and AI Commit Assistant" class="mockup-img">
+          </div>
+        </div>
+
+        <!-- 1-Click Clone Command Box -->
+        <div class="hero-clone-card">
+          <span class="clone-prompt">$</span>
+          <span class="clone-cmd">git clone https://github.com/sayedarshad2003/LGSM.git</span>
+          <button class="copy-btn" data-copy="git clone https://github.com/sayedarshad2003/LGSM.git" aria-label="Copy clone command">
+            <i class="fa-solid fa-copy"></i>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features Grid -->
+  <section id="features" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-category">Architecture &amp; Features</span>
+        <h2 class="section-title">Engineered for Performance, Security &amp; Control</h2>
+        <p class="section-desc">
+          Eliminate authentication friction when switching between client organizations and personal repositories without compromising your commit history or security keys.
+        </p>
+      </div>
+
+      <div class="features-grid">
+        <!-- Feature 1 -->
+        <div class="feature-box">
+          <div class="feature-icon-bar">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <h3>Multi-Account GitHub Manager</h3>
+          <p>
+            Toggle between personal, client, and corporate GitHub accounts in one click. Never store raw OAuth tokens; all credentials delegate securely to the Windows Credential Manager and GitHub CLI.
+          </p>
+          <div class="feature-chips">
+            <span class="feature-chip">gh auth switch</span>
+            <span class="feature-chip">Atomic Lock</span>
+            <span class="feature-chip">Zero Token Leak</span>
+          </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-box">
+          <div class="feature-icon-bar">
+            <i class="fa-solid fa-brain"></i>
+          </div>
+          <h3>AI-Assisted Conventional Commits</h3>
+          <p>
+            Feed staged modifications into DeepSeek Reasoner or Google Gemini. The engine generates structured Conventional Commit subjects and explanatory bullet points adhering to team standards.
+          </p>
+          <div class="feature-chips">
+            <span class="feature-chip">DeepSeek API</span>
+            <span class="feature-chip">Google Gemini</span>
+            <span class="feature-chip">Conventional Format</span>
+          </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-box">
+          <div class="feature-icon-bar">
+            <i class="fa-solid fa-code-compare"></i>
+          </div>
+          <h3>Syntax-Highlighted Diff Viewer</h3>
+          <p>
+            Inspect working tree changes with unified and side-by-side view modes. Supports line-level addition and deletion highlighting, hunk navigation, and selective modification discard.
+          </p>
+          <div class="feature-chips">
+            <span class="feature-chip">Unified Diff</span>
+            <span class="feature-chip">Split Mode</span>
+            <span class="feature-chip">Selective Discard</span>
+          </div>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-box">
+          <div class="feature-icon-bar">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+          </div>
+          <h3>1-Click Remote Repository Cloner</h3>
+          <p>
+            Discover accessible repositories under any authenticated GitHub profile. Filter repositories by owner or name and clone directly into your workspace with transport credentials auto-assigned.
+          </p>
+          <div class="feature-chips">
+            <span class="feature-chip">Private Repos</span>
+            <span class="feature-chip">Instant Filter</span>
+            <span class="feature-chip">Credential Helper</span>
+          </div>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="feature-box">
+          <div class="feature-icon-bar">
+            <i class="fa-solid fa-folder-tree"></i>
+          </div>
+          <h3>High-Speed Workspace Scanner</h3>
+          <p>
+            Point LGMS to your root development directory. An asynchronous scanner identifies all nested Git repositories in milliseconds, reporting branch status, ahead/behind counters, and uncommitted modifications.
+          </p>
+          <div class="feature-chips">
+            <span class="feature-chip">Recursive Scan</span>
+            <span class="feature-chip">Ahead / Behind</span>
+            <span class="feature-chip">Clean / Dirty State</span>
+          </div>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="feature-box">
+          <div class="feature-icon-bar">
+            <i class="fa-solid fa-terminal"></i>
+          </div>
+          <h3>Safe Sandboxed Git Console</h3>
+          <p>
+            Access an embedded command terminal restricted to safe Git operations. Execute custom branch merges, inspect reflogs, review remotes, and record operation logs in the audit database.
+          </p>
+          <div class="feature-chips">
+            <span class="feature-chip">Sandboxed Shell</span>
+            <span class="feature-chip">Branch Manager</span>
+            <span class="feature-chip">Audit Logging</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow / How To Use Stepper -->
+  <section id="workflow" class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-category">Implementation Walkthrough</span>
+        <h2 class="section-title">Workflow Guide: Getting Started with LGMS</h2>
+        <p class="section-desc">
+          Follow the operational workflow from initial prerequisites and multi-account linking to AI-powered commits and 1-click cloud repository cloning.
+        </p>
+      </div>
+
+      <div class="workflow-container">
+        <!-- Tab Bar -->
+        <div class="workflow-tab-bar" role="tablist">
+          <button class="workflow-tab-btn active" data-step="1" role="tab">
+            <span class="workflow-step-badge">1</span>
+            <span>Prerequisites</span>
+          </button>
+          <button class="workflow-tab-btn" data-step="2" role="tab">
+            <span class="workflow-step-badge">2</span>
+            <span>Account Setup</span>
+          </button>
+          <button class="workflow-tab-btn" data-step="3" role="tab">
+            <span class="workflow-step-badge">3</span>
+            <span>Workspace Discovery</span>
+          </button>
+          <button class="workflow-tab-btn" data-step="4" role="tab">
+            <span class="workflow-step-badge">4</span>
+            <span>Staging &amp; Diff</span>
+          </button>
+          <button class="workflow-tab-btn" data-step="5" role="tab">
+            <span class="workflow-step-badge">5</span>
+            <span>AI Smart Commits</span>
+          </button>
+          <button class="workflow-tab-btn" data-step="6" role="tab">
+            <span class="workflow-step-badge">6</span>
+            <span>Remote Clone</span>
+          </button>
+          <button class="workflow-tab-btn" data-step="7" role="tab">
+            <span class="workflow-step-badge">7</span>
+            <span>Safe Terminal</span>
+          </button>
+        </div>
+
+        <!-- Step 1 Pane -->
+        <div class="workflow-pane active" id="step-pane-1" role="tabpanel">
+          <div class="workflow-row">
+            <div class="workflow-desc">
+              <h3>Step 1: Verify System Prerequisites</h3>
+              <p>
+                The standalone Windows distribution includes its own self-contained .NET 9 runtime. Ensure Git and GitHub CLI are available on your system path:
+              </p>
+              <ul class="workflow-check-list">
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span><strong>Git for Windows</strong> (version 2.25 or later) registered in system <code>PATH</code>.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span><strong>GitHub CLI (<code>gh</code>)</strong> for account discovery and credential helper binding.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span><strong>Optional:</strong> .NET 9 SDK and Microsoft SQL Server (only required when building from source).</span>
+                </li>
+              </ul>
+            </div>
+            <div class="code-card">
+              <div class="code-card-header">
+                <span>PowerShell CLI Verification</span>
+                <button class="copy-btn" data-copy="git --version; gh --version">Copy</button>
+              </div>
+              <pre class="code-card-body"><span class="c-dim"># Verify Git installation</span>
+<span class="c-cmd">git</span> <span class="c-arg">--version</span>
+<span class="c-dim"># Output: git version 2.47.0.windows.1</span>
+
+<span class="c-dim"># Verify GitHub CLI</span>
+<span class="c-cmd">gh</span> <span class="c-arg">--version</span>
+<span class="c-dim"># Output: gh version 2.60.0 (x86_64-w64-mingw32)</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 Pane -->
+        <div class="workflow-pane" id="step-pane-2" role="tabpanel">
+          <div class="workflow-row">
+            <div class="workflow-desc">
+              <h3>Step 2: Connect Multiple GitHub Accounts</h3>
+              <p>
+                Authenticate each required GitHub account using standard OAuth browser handshakes. LGMS never inspects or logs raw access tokens:
+              </p>
+              <ul class="workflow-check-list">
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Run <code>gh auth login --hostname github.com --web</code> for each personal or organizational profile.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Run <code>gh auth setup-git</code> to register GitHub CLI as Git's credential provider.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Open LGMS: all authenticated accounts populate automatically with active markers.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="code-card">
+              <div class="code-card-header">
+                <span>PowerShell Authentication Command</span>
+                <button class="copy-btn" data-copy="gh auth login --hostname github.com --web&#10;gh auth setup-git">Copy</button>
+              </div>
+              <pre class="code-card-body"><span class="c-dim"># 1. Login to Primary / Personal Account</span>
+<span class="c-cmd">gh</span> <span class="c-arg">auth login</span> --hostname github.com --web
+
+<span class="c-dim"># 2. Login to Enterprise / Work Account</span>
+<span class="c-cmd">gh</span> <span class="c-arg">auth login</span> --hostname github.com --web
+
+<span class="c-dim"># 3. Bind Windows Credential Helper</span>
+<span class="c-cmd">gh</span> <span class="c-arg">auth setup-git</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 Pane -->
+        <div class="workflow-pane" id="step-pane-3" role="tabpanel">
+          <div class="workflow-row">
+            <div class="workflow-desc">
+              <h3>Step 3: Workspace Discovery &amp; Repository Scanning</h3>
+              <p>
+                Designate a parent directory containing your code repositories. LGMS scans subfolders recursively in parallel:
+              </p>
+              <ul class="workflow-check-list">
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Recursively detects valid <code>.git</code> repository roots.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Parses active branch, tracking status, and uncommitted modification metrics.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Double-click any repository to launch its working tree and diff workspace immediately.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="code-card">
+              <div class="code-card-header">
+                <span>Scanner Diagnostic Output</span>
+                <span class="c-arg">Asynchronous</span>
+              </div>
+              <pre class="code-card-body"><span class="c-dim">// Scanning root directory: "E:\Asp.NET Work\Test Project"</span>
+[OK] LGMS            -> branch: <span class="c-cmd">main</span> (3 ahead) [Modified]
+[OK] CoreUtils       -> branch: <span class="c-cmd">v2-dev</span> (Clean)
+[OK] MicroServiceApi -> branch: <span class="c-cmd">feature/jwt</span> (1 behind)
+
+<span class="c-arg">Scan complete: 3 repositories discovered in 12ms.</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 Pane -->
+        <div class="workflow-pane" id="step-pane-4" role="tabpanel">
+          <div class="workflow-row">
+            <div class="workflow-desc">
+              <h3>Step 4: Working Tree Staging &amp; Syntax Diff</h3>
+              <p>
+                Manage staged modifications with granular line-level control prior to committing:
+              </p>
+              <ul class="workflow-check-list">
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Stage or unstage specific files, or stage all modifications in a single operation.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Inspect additions and deletions with syntax highlighting and hunk indicators.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Selectively discard working tree modifications without affecting staged files.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="code-card">
+              <div class="code-card-header">
+                <span>Unified Diff Inspector</span>
+                <button class="copy-btn" data-copy="git diff --staged">Copy</button>
+              </div>
+              <pre class="code-card-body"><span class="c-keyword">diff --git a/GitService.cs b/GitService.cs</span>
+<span class="c-dim">@@ -14,6 +14,8 @@ public class GitService</span>
+<span style="color: #fca5a5;">- public void RunPush()</span>
+<span style="color: #86efac;">+ public async Task&lt;bool&gt; RunPushAsync(string repoPath)</span>
+<span style="color: #86efac;">+ {</span>
+<span style="color: #86efac;">+     return await _processRunner.RunAsync("git", "push");</span>
+<span style="color: #86efac;">+ }</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5 Pane -->
+        <div class="workflow-pane" id="step-pane-5" role="tabpanel">
+          <div class="workflow-row">
+            <div class="workflow-desc">
+              <h3>Step 5: AI-Assisted Smart Commits</h3>
+              <p>
+                Eliminate generic commit titles. LGMS analyzes staged git diffs using DeepSeek or Google Gemini:
+              </p>
+              <ul class="workflow-check-list">
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Supports <strong>DeepSeek Reasoner</strong> and <strong>Google Gemini Flash/Pro</strong>.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Generates Conventional Commit subjects (<code>feat</code>, <code>fix</code>, <code>refactor</code>, etc.).</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Click <strong>"Commit &amp; Push"</strong> to commit and synchronize to the cloud in one atomic step.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="code-card">
+              <div class="code-card-header">
+                <span>AI Conventional Commit Generation</span>
+                <span class="c-arg">Standardized</span>
+              </div>
+              <pre class="code-card-body"><span class="c-dim"># Generated Subject:</span>
+<span class="c-cmd">feat(auth): integrate GitAccountOperationLock mutex</span>
+
+<span class="c-dim"># Generated Description:</span>
+- Enforce serialized thread-safe execution of gh auth switch
+- Prevent concurrency collisions on shared Windows Credential token
+- Retain author signature on every commit</pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 6 Pane -->
+        <div class="workflow-pane" id="step-pane-6" role="tabpanel">
+          <div class="workflow-row">
+            <div class="workflow-desc">
+              <h3>Step 6: 1-Click Remote Cloud Repository Cloning</h3>
+              <p>
+                Clone public or private repositories from any linked account without navigating web portals or managing SSH keys manually:
+              </p>
+              <ul class="workflow-check-list">
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Open the <strong>GitHub</strong> tab in LGMS Desktop or Web.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Filter repositories by name or organization in real time.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Click <strong>Clone</strong>: LGMS verifies the matching transport account and executes atomic cloning.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="code-card">
+              <div class="code-card-header">
+                <span>Automated Clone Execution</span>
+                <span class="c-arg">Atomic Switch</span>
+              </div>
+              <pre class="code-card-body"><span class="c-dim">// 1. LGMS sets active account</span>
+<span class="c-cmd">gh</span> auth switch --user sayedarshad2003
+
+<span class="c-dim">// 2. Clones repository directly via HTTPS</span>
+<span class="c-cmd">git</span> clone https://github.com/sayedarshad2003/LGSM.git
+
+<span class="c-arg">Cloned successfully into: E:\Asp.NET Work\Test Project\LGMS</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 7 Pane -->
+        <div class="workflow-pane" id="step-pane-7" role="tabpanel">
+          <div class="workflow-row">
+            <div class="workflow-desc">
+              <h3>Step 7: Safe Sandboxed Git Terminal</h3>
+              <p>
+                Execute direct Git CLI commands directly within an integrated, safe execution environment:
+              </p>
+              <ul class="workflow-check-list">
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Sandboxed environment preventing accidental execution of destructive shell scripts.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Integrated branch switcher, remote manager, and merge conflict utilities.</span>
+                </li>
+                <li>
+                  <i class="fa-solid fa-check"></i>
+                  <span>Audit logging persisted to database for full team traceability.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="code-card">
+              <div class="code-card-header">
+                <span>Embedded Git Terminal</span>
+                <span class="c-arg">Sandboxed</span>
+              </div>
+              <pre class="code-card-body"><span style="color: var(--accent-success);">lgms:~$</span> <span class="c-cmd">git branch -a</span>
+* <span class="c-arg">main</span>
+  remotes/origin/main
+  remotes/origin/feature/ai-commit-assistant
+
+<span style="color: var(--accent-success);">lgms:~$</span> <span class="c-cmd">git remote -v</span>
+origin https://github.com/sayedarshad2003/LGSM.git (fetch)
+origin https://github.com/sayedarshad2003/LGSM.git (push)</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Simulator Playground -->
+  <section id="playground" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-category">Interactive Playground</span>
+        <h2 class="section-title">Test Core Features in Your Browser</h2>
+        <p class="section-desc">
+          Test multi-account toggling, AI commit generation, syntax diff viewing, and the sandboxed Git terminal in this live simulator.
+        </p>
+      </div>
+
+      <div class="playground-container">
+        <!-- Navigation Buttons -->
+        <div class="playground-nav" role="tablist">
+          <button class="playground-btn active" data-target="demo-accounts" role="tab">
+            <i class="fa-solid fa-users"></i>
+            <span>Multi-Account Switcher</span>
+          </button>
+          <button class="playground-btn" data-target="demo-ai" role="tab">
+            <i class="fa-solid fa-brain"></i>
+            <span>AI Commit Generator</span>
+          </button>
+          <button class="playground-btn" data-target="demo-diff" role="tab">
+            <i class="fa-solid fa-code-compare"></i>
+            <span>Syntax Diff Viewer</span>
+          </button>
+          <button class="playground-btn" data-target="demo-term" role="tab">
+            <i class="fa-solid fa-terminal"></i>
+            <span>Safe Git Terminal</span>
+          </button>
+        </div>
+
+        <!-- Simulator 1: Multi-Account Switcher -->
+        <div class="playground-panel active" id="demo-accounts" role="tabpanel">
+          <div class="sim-account-grid">
+            <div class="sim-account-list">
+              <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.75rem;">
+                Connected GitHub Accounts
+              </div>
+
+              <!-- Account 1 -->
+              <div class="sim-account-item active" data-account="sayedarshad2003">
+                <div class="sim-avatar">SA</div>
+                <div class="sim-account-details">
+                  <div class="sim-account-title">
+                    <span>Sayed Arshad</span>
+                    <span style="font-size: 0.65rem; color: var(--accent-success); font-weight: 700;">ACTIVE</span>
+                  </div>
+                  <div class="sim-account-handle">@sayedarshad2003 (Personal)</div>
+                </div>
+              </div>
+
+              <!-- Account 2 -->
+              <div class="sim-account-item" data-account="work-org">
+                <div class="sim-avatar" style="background: #4f46e5;">WD</div>
+                <div class="sim-account-details">
+                  <div class="sim-account-title">
+                    <span>Work Developer</span>
+                  </div>
+                  <div class="sim-account-handle">@work-developer (Enterprise Org)</div>
+                </div>
+              </div>
+
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.85rem;">
+                <i class="fa-solid fa-info-circle"></i> Click an account above to simulate thread-safe switching.
+              </div>
+            </div>
+
+            <div class="sim-status-box">
+              <div style="font-weight: 700; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                <span>Active Credential State</span>
+                <span id="demo-lock-status">
+                  <span style="color: var(--accent-success); font-size: 0.82rem;"><i class="fa-solid fa-lock"></i> Mutex Lock Acquired</span>
+                </span>
+              </div>
+
+              <div class="sim-row">
+                <span class="sim-label">Active GitHub Username:</span>
+                <span class="sim-val text-gradient" id="demo-active-user">sayedarshad2003</span>
+              </div>
+              <div class="sim-row">
+                <span class="sim-label">Target Host:</span>
+                <span class="sim-val" id="demo-active-host">github.com</span>
+              </div>
+              <div class="sim-row">
+                <span class="sim-label">Transport Helper:</span>
+                <span class="sim-val" style="color: var(--accent-success);" id="demo-active-helper">Windows Credential Helper (Active)</span>
+              </div>
+              <div class="sim-row">
+                <span class="sim-label">Author Identity Protection:</span>
+                <span class="sim-val" style="color: var(--accent-success);">user.name &amp; user.email Preserved</span>
+              </div>
+
+              <div style="margin-top: 1rem; flex-grow: 1;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.35rem; font-family: var(--font-mono);">
+                  Operation Execution Audit Log:
+                </div>
+                <div class="sim-term-screen" id="demo-account-log" style="min-height: 100px; max-height: 130px; background: var(--bg-code); border-radius: var(--radius-sm); padding: 0.75rem;">
+                  <div><span class="c-dim">[10:15:20]</span> Acquiring GitAccountOperationLock...</div>
+                  <div><span class="c-keyword">SUCCESS:</span> Lock acquired. Invoking: <span class="c-cmd">gh auth switch --user sayedarshad2003</span></div>
+                  <div><span class="c-arg">OK:</span> Active GitHub transport account set to <strong>sayedarshad2003</strong>.</div>
+                  <div><span class="c-dim">AUDIT:</span> Identity user.name and user.email remain unchanged. Ready for atomic operation.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulator 2: AI Commit Generator -->
+        <div class="playground-panel" id="demo-ai" role="tabpanel">
+          <div class="sim-ai-grid">
+            <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 1.25rem;">
+              <div class="sim-form-group">
+                <label class="sim-label-text">Select Sample Git Diff:</label>
+                <select class="sim-select" id="ai-diff-select">
+                  <option value="auth_lock">GitAccountOperationLock Mutex Lock</option>
+                  <option value="diff_viewer">Syntax-Highlighted Diff Viewer Component</option>
+                  <option value="deepseek_gemini">DeepSeek &amp; Gemini Dual AI Engine Services</option>
+                </select>
+              </div>
+
+              <div class="sim-form-group">
+                <label class="sim-label-text">AI Model Engine:</label>
+                <select class="sim-select" id="ai-provider-select">
+                  <option value="deepseek">DeepSeek Reasoner (API)</option>
+                  <option value="gemini">Google Gemini 1.5 Flash (API)</option>
+                </select>
+              </div>
+
+              <div class="sim-form-group">
+                <label class="sim-label-text">Staged Diff Preview:</label>
+                <pre class="code-card-body" id="ai-diff-display" style="max-height: 120px; overflow-y: auto; background: var(--bg-code); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.78rem;">+ builder.Services.AddSingleton&lt;GitAccountOperationLock&gt;();
++ using (await _accountLock.AcquireAsync())
++ {
++     await _cli.SwitchAccountAsync(account.Username);
++     await _git.PushAsync(repoPath);
++ }</pre>
+              </div>
+
+              <button class="btn btn-primary" id="ai-generate-btn" style="width: 100%;">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Generate Smart Commit</span>
+              </button>
+            </div>
+
+            <div class="sim-ai-output">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: var(--accent-primary);">AI CONVENTIONAL COMMIT OUTPUT</span>
+                <span class="feature-chip">Conventional Format</span>
+              </div>
+
+              <div class="sim-ai-card">
+                <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.35rem;">Commit Subject:</div>
+                <div id="ai-output-subject" style="color: #38bdf8; font-weight: 600; margin-bottom: 0.85rem;">
+                  feat(auth): serialize gh account switching via atomic mutex lock
+                </div>
+
+                <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.35rem;">Commit Description:</div>
+                <div id="ai-output-body" style="color: #cbd5e1; white-space: pre-line; line-height: 1.6;">
+- Prevent race conditions during concurrent push and remote operations
+- Wrap gh auth switch and git push in GitAccountOperationLock
+- Maintain commit author identity across transport credential switches
+                </div>
+              </div>
+
+              <div style="margin-top: 0.85rem; display: flex; justify-content: flex-end;">
+                <button class="btn btn-secondary btn-sm" data-copy="feat(auth): serialize gh account switching via atomic mutex lock&#10;&#10;- Prevent race conditions during concurrent push and remote operations&#10;- Wrap gh auth switch and git push in GitAccountOperationLock">
+                  <i class="fa-solid fa-copy"></i>
+                  <span>Copy Commit Message</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulator 3: Diff Viewer -->
+        <div class="playground-panel" id="demo-diff" role="tabpanel">
+          <div class="sim-diff-box">
+            <div class="sim-diff-bar">
+              <span style="color: #f8fafc; font-weight: 600;">LGMS.Core/Services/GitHubCliService.cs</span>
+              <button class="btn btn-secondary btn-sm" id="diff-mode-toggle">
+                <i class="fa-solid fa-bars"></i>
+                <span>View: Unified</span>
+              </button>
+            </div>
+
+            <div id="interactive-diff-lines">
+              <div class="diff-row hunk">
+                <span class="diff-ln">...</span>
+                <span>@@ -48,7 +48,11 @@ public async Task&lt;List&lt;GitHubAccount&gt;&gt; GetAccountsAsync()</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-ln">48</span>
+                <span>    var result = await _processRunner.RunAsync("gh", "auth status --json hosts");</span>
+              </div>
+              <div class="diff-row del">
+                <span class="diff-ln">49</span>
+                <span>-   return ParseLegacyAccounts(result.Output);</span>
+              </div>
+              <div class="diff-row add">
+                <span class="diff-ln">49</span>
+                <span>+   using var doc = JsonDocument.Parse(result.Output);</span>
+              </div>
+              <div class="diff-row add">
+                <span class="diff-ln">50</span>
+                <span>+   return ParseModernHosts(doc.RootElement);</span>
+              </div>
+              <div class="diff-row add">
+                <span class="diff-ln">51</span>
+                <span>+   // Zero plaintext storage - credentials kept in Windows Credential Manager</span>
+              </div>
+              <div class="diff-row">
+                <span class="diff-ln">52</span>
+                <span> }</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulator 4: Terminal -->
+        <div class="playground-panel" id="demo-term" role="tabpanel">
+          <div class="sim-term-box">
+            <div class="sim-term-header">
+              <span>SANDBOXED GIT TERMINAL</span>
+              <span>LGMS Embedded Shell</span>
+            </div>
+
+            <div class="sim-term-screen" id="terminal-screen">
+              <div><span style="color: var(--accent-success);">lgms:~$</span> <span class="c-dim"># Ready. Click any quick command below:</span></div>
+              <div style="margin-top: 0.5rem;"><span style="color: var(--accent-success);">lgms:~$</span> <span class="c-cmd">git status</span></div>
+              <pre style="margin-top: 0.25rem; font-family: inherit; color: #94a3b8; white-space: pre-wrap;">On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged &lt;file&gt;..." to unstage)
+	modified:   LGMS.Core/Services/GitAccountOperationLock.cs
+	modified:   LGMS.Desktop/Views/MainWindow.xaml
+
+status: clean working tree ready to commit</pre>
+            </div>
+
+            <div class="sim-term-tools">
+              <span style="font-size: 0.75rem; color: var(--text-muted); align-self: center;">Quick Run:</span>
+              <button class="term-btn" data-cmd="git status">git status</button>
+              <button class="term-btn" data-cmd="gh auth status">gh auth status</button>
+              <button class="term-btn" data-cmd="git branch -a">git branch -a</button>
+              <button class="term-btn" data-cmd="git log -n 2">git log -n 2</button>
+              <button class="term-btn" data-cmd="clear">clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Center -->
+  <section id="download" class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-category">Distribution Packages</span>
+        <h2 class="section-title">Download LGMS for Windows</h2>
+        <p class="section-desc">
+          Ready for immediate deployment. Download the self-contained standalone desktop package or clone the open-source repository.
+        </p>
+      </div>
+
+      <div class="download-grid">
+        <!-- Main Download Card: Desktop Standalone -->
+        <div class="download-lead-card">
+          <span class="download-pill-featured">OFFICIAL RELEASE</span>
+          <h3>LGMS Desktop Standalone (x64)</h3>
+          <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">
+            Native Windows WPF single-file executable. Self-contained .NET 9 engine included with no external runtime setup required.
+          </p>
+
+          <div class="download-specs-bar">
+            <span class="spec-badge">
+              <i class="fa-solid fa-tag"></i>
+              v1.0.0
+            </span>
+            <span class="spec-badge">
+              <i class="fa-brands fa-windows"></i>
+              Windows 10 / 11 (64-bit)
+            </span>
+            <span class="spec-badge">
+              <i class="fa-solid fa-file-zipper"></i>
+              62.7 MB (.zip)
+            </span>
+            <span class="spec-badge">
+              <i class="fa-solid fa-microchip"></i>
+              Self-Contained .NET 9
+            </span>
+          </div>
+
+          <ul class="download-benefits">
+            <li>
+              <i class="fa-solid fa-check"></i>
+              <span>Unpack and run <code>LGMS.Desktop.exe</code> immediately without administrative installation</span>
+            </li>
+            <li>
+              <i class="fa-solid fa-check"></i>
+              <span>Full GitHub Multi-Account management tab with atomic switching</span>
+            </li>
+            <li>
+              <i class="fa-solid fa-check"></i>
+              <span>Integrated AI Conventional Commit Assistant (DeepSeek &amp; Google Gemini)</span>
+            </li>
+            <li>
+              <i class="fa-solid fa-check"></i>
+              <span>Syntax-highlighted diff viewer, staging manager, and safe embedded terminal</span>
+            </li>
+          </ul>
+
+          <div class="download-cluster">
+            <a href="downloads/LGMS-Desktop-Windows-x64.zip" class="btn btn-primary btn-lg" download>
+              <i class="fa-solid fa-download"></i>
+              <span>Download Standalone ZIP</span>
+            </a>
+
+            <a href="https://github.com/sayedarshad2003/LGSM/releases" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-lg">
+              <i class="fa-brands fa-github"></i>
+              <span>GitHub Releases</span>
+            </a>
+          </div>
+
+          <div class="quick-steps-card">
+            <div class="quick-steps-header">
+              <i class="fa-solid fa-circle-play"></i>
+              <span>Quick Start:</span>
+            </div>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+              1. Download and extract <strong>LGMS-Desktop-Windows-x64.zip</strong><br>
+              2. Launch <strong>LGMS.Desktop.exe</strong><br>
+              3. Connect your GitHub accounts or point to your repository workspace to begin.
+            </p>
+          </div>
+        </div>
+
+        <!-- Side Stack Cards -->
+        <div class="download-side-group">
+          <!-- Card: GitHub Public Repo -->
+          <div class="download-sub-card">
+            <h4>Public GitHub Repository</h4>
+            <p style="color: var(--text-secondary);">
+              Access the complete source code, review architectural patterns, or contribute enhancements to the project.
+            </p>
+            <div style="margin-bottom: 1rem;">
+              <code style="display: block; background: var(--bg-code); padding: 0.55rem 0.85rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: #38bdf8; overflow-x: auto;">
+                git clone https://github.com/sayedarshad2003/LGSM.git
+              </code>
+            </div>
+            <a href="https://github.com/sayedarshad2003/LGSM" target="_blank" rel="noopener noreferrer" class="btn btn-github btn-sm" style="width: 100%;">
+              <i class="fa-brands fa-github"></i>
+              <span>github.com/sayedarshad2003/LGSM</span>
+            </a>
+          </div>
+
+          <!-- Card: Build from Source -->
+          <div class="download-sub-card">
+            <h4>Build Single-File from Source</h4>
+            <p style="color: var(--text-secondary); font-size: 0.85rem;">
+              If you have the .NET 9 SDK installed, you can build your standalone binary directly:
+            </p>
+            <div class="code-card" style="margin-bottom: 0.75rem;">
+              <pre class="code-card-body" style="padding: 0.65rem 0.85rem; font-size: 0.76rem;">dotnet publish LGMS.Desktop/LGMS.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish/desktop-standalone</pre>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="width: 100%;" data-copy="dotnet publish LGMS.Desktop/LGMS.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish/desktop-standalone">
+              <i class="fa-solid fa-copy"></i>
+              <span>Copy Build Command</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture & Security Matrix -->
+  <section id="architecture" class="section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-category">Enterprise Security</span>
+        <h2 class="section-title">Zero Token Leakage Architecture</h2>
+        <p class="section-desc">
+          How LGMS isolates credentials, guarantees thread-safe account switching, and preserves commit authors.
+        </p>
+      </div>
+
+      <div class="arch-columns">
+        <div class="arch-item">
+          <div class="arch-icon-wrapper">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <h4>Zero Plaintext Token Storage</h4>
+          <p>
+            Traditional Git GUIs often save personal access tokens in plain text files or unencrypted SQLite databases. LGMS delegates all token storage to the secure Windows Credential Manager.
+          </p>
+        </div>
+
+        <div class="arch-item">
+          <div class="arch-icon-wrapper">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <h4>Mutex-Serialized Operations</h4>
+          <p>
+            The custom <code>GitAccountOperationLock</code> guarantees that account toggling and remote Git operations execute sequentially, preventing transport session collisions.
+          </p>
+        </div>
+
+        <div class="arch-item">
+          <div class="arch-icon-wrapper">
+            <i class="fa-solid fa-user-shield"></i>
+          </div>
+          <h4>Independent Commit Identity</h4>
+          <p>
+            Switching your GitHub login for push/pull transport will never alter your local repository's <code>user.name</code> and <code>user.email</code> author configuration.
+          </p>
+        </div>
+      </div>
+
+      <!-- Feature Comparison Matrix -->
+      <div class="matrix-wrap">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Evaluation Parameter</th>
+              <th class="col-lead">LGMS (.NET 9)</th>
+              <th>Generic Git GUIs</th>
+              <th>Standard Git CLI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>GitHub Multi-Account Switching</strong></td>
+              <td class="col-lead"><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> 1-Click with atomic mutex lock</td>
+              <td><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-warning);"></i> Manual re-login / token overwrite</td>
+              <td><i class="fa-solid fa-xmark" style="color: var(--accent-danger);"></i> Complex manual SSH/config edits</td>
+            </tr>
+            <tr>
+              <td><strong>Credential Security</strong></td>
+              <td class="col-lead"><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> Delegated to Windows Credential Manager</td>
+              <td><i class="fa-solid fa-xmark" style="color: var(--accent-danger);"></i> Tokens stored in application config</td>
+              <td><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> Git Credential Manager</td>
+            </tr>
+            <tr>
+              <td><strong>AI Conventional Commit Assistant</strong></td>
+              <td class="col-lead"><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> Integrated (DeepSeek &amp; Gemini)</td>
+              <td><i class="fa-solid fa-xmark" style="color: var(--accent-danger);"></i> None or expensive paid add-on</td>
+              <td><i class="fa-solid fa-xmark" style="color: var(--accent-danger);"></i> None</td>
+            </tr>
+            <tr>
+              <td><strong>Dual WPF Desktop &amp; Web MVC App</strong></td>
+              <td class="col-lead"><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> Both native desktop and ASP.NET Core</td>
+              <td><i class="fa-solid fa-xmark" style="color: var(--accent-danger);"></i> Single standalone app only</td>
+              <td><i class="fa-solid fa-xmark" style="color: var(--accent-danger);"></i> CLI only</td>
+            </tr>
+            <tr>
+              <td><strong>Workspace Multi-Repo Discovery</strong></td>
+              <td class="col-lead"><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> Fast recursive millisecond scan</td>
+              <td><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-warning);"></i> Slow manual project imports</td>
+              <td><i class="fa-solid fa-xmark" style="color: var(--accent-danger);"></i> Manual directory navigation</td>
+            </tr>
+            <tr>
+              <td><strong>Licensing &amp; Distribution</strong></td>
+              <td class="col-lead"><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> Free, Open Source (MIT) &amp; Standalone</td>
+              <td><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-warning);"></i> Freemium / Monthly Subscription</td>
+              <td><i class="fa-solid fa-check" style="color: var(--accent-success);"></i> Free &amp; Open Source</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="section section-alt">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-category">Documentation</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">
+          Answers to technical questions regarding installation, security, and operation.
+        </p>
+      </div>
+
+      <div class="faq-stack">
+        <!-- FAQ 1 -->
+        <div class="faq-block open">
+          <button class="faq-btn">
+            <span>Does LGMS store GitHub passwords or personal access tokens?</span>
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-body">
+            <p>
+              No. LGMS uses the official GitHub CLI (<code>gh</code>) and Windows Credential Manager. Authentication tokens remain safely stored within the Windows secure credential subsystem. LGMS only reads public identity metadata (usernames and avatar URLs) for display.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 2 -->
+        <div class="faq-block">
+          <button class="faq-btn">
+            <span>Is the .NET 9 SDK required to run the Desktop standalone application?</span>
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-body">
+            <p>
+              No. The published standalone package (<code>LGMS-Desktop-Windows-x64.zip</code>) is compiled as a self-contained single-file executable. It bundles the required .NET 9 runtime inside <code>LGMS.Desktop.exe</code>, permitting execution without separate .NET installations on Windows 10 or 11.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 3 -->
+        <div class="faq-block">
+          <button class="faq-btn">
+            <span>How do I authenticate additional GitHub accounts?</span>
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-body">
+            <p>
+              Run <code>gh auth login --hostname github.com --web</code> in PowerShell or Command Prompt and complete the browser verification for your additional account. Upon completion, refreshing LGMS immediately lists the newly authenticated account for 1-click switching.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 4 -->
+        <div class="faq-block">
+          <button class="faq-btn">
+            <span>Does switching GitHub transport accounts change the Git commit author?</span>
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-body">
+            <p>
+              No. LGMS maintains strict separation between transport authentication (who connects to GitHub) and author configuration (the <code>user.name</code> and <code>user.email</code> embedded into commits). Toggling accounts for push or pull will not alter existing or future commit signatures.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 5 -->
+        <div class="faq-block">
+          <button class="faq-btn">
+            <span>How do I configure API keys for DeepSeek or Google Gemini?</span>
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-body">
+            <p>
+              In the Desktop application, navigate to the <strong>Settings</strong> tab and input your DeepSeek or Google Gemini API key. Settings are persisted locally on your machine at <code>%LOCALAPPDATA%\LGMS\settings.json</code> and never transmitted externally.
+            </p>
+          </div>
+        </div>
+
+        <!-- FAQ 6 -->
+        <div class="faq-block">
+          <button class="faq-btn">
+            <span>Where is the open-source repository and how can I contribute?</span>
+            <i class="fa-solid fa-chevron-down faq-chevron"></i>
+          </button>
+          <div class="faq-body">
+            <p>
+              The project is open source and hosted on GitHub at <a href="https://github.com/sayedarshad2003/LGSM" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary);">https://github.com/sayedarshad2003/LGSM</a>. Pull requests, bug reports, and discussions are welcome.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-columns">
+        <div class="footer-about">
+          <a href="#hero" class="brand">
+            <img src="assets/logo.png" alt="LGMS Logo" class="brand-logo-img">
+            <span class="brand-name">LGMS</span>
+          </a>
+          <p>
+            Local Git Management System (.NET 9). High-performance, local-first Git control with native multi-account switching, zero-token security, and AI conventional commits.
+          </p>
+          <div style="margin-top: 1rem;">
+            <a href="https://github.com/sayedarshad2003/LGSM" target="_blank" rel="noopener noreferrer" class="btn btn-github btn-sm">
+              <i class="fa-brands fa-github"></i>
+              <span>GitHub @sayedarshad2003/LGSM</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h5>Features</h5>
+          <ul class="footer-menu">
+            <li><a href="#features">Multi-Account Manager</a></li>
+            <li><a href="#workflow">Workflow Guide</a></li>
+            <li><a href="#playground">Interactive Simulator</a></li>
+            <li><a href="#architecture">Zero-Token Architecture</a></li>
+            <li><a href="#download">Desktop Standalone</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Resources</h5>
+          <ul class="footer-menu">
+            <li><a href="https://github.com/sayedarshad2003/LGSM" target="_blank" rel="noopener noreferrer">Source Code</a></li>
+            <li><a href="https://github.com/sayedarshad2003/LGSM/releases" target="_blank" rel="noopener noreferrer">Releases &amp; Changelog</a></li>
+            <li><a href="https://github.com/sayedarshad2003/LGSM/issues" target="_blank" rel="noopener noreferrer">Issue Tracker</a></li>
+            <li><a href="downloads/LGMS-Desktop-Windows-x64.zip" download>Direct Download .ZIP</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h5>Ecosystem</h5>
+          <ul class="footer-menu">
+            <li><a href="https://github.com/sayedarshad2003" target="_blank" rel="noopener noreferrer">Author Profile</a></li>
+            <li><a href="https://cli.github.com" target="_blank" rel="noopener noreferrer">GitHub CLI Documentation</a></li>
+            <li><a href="https://git-scm.com" target="_blank" rel="noopener noreferrer">Git SCM Documentation</a></li>
+            <li><a href="https://dotnet.microsoft.com/download/dotnet/9.0" target="_blank" rel="noopener noreferrer">.NET 9 SDK</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bar">
+        <div>
+          &copy; 2026 LGMS (Local Git Management System). Open source software developed by <a href="https://github.com/sayedarshad2003" target="_blank" rel="noopener noreferrer">Sayed Arshad</a>. Released under the MIT License.
+        </div>
+        <div>
+          <a href="#hero">Back to top <i class="fa-solid fa-arrow-up"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+</body>
+</html>
