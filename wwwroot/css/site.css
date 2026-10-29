@@ -220,3 +220,181 @@ body.lgms-app {
     z-index: 2000;
     backdrop-filter: blur(2px);
 }
+
+/* ==========================================================================
+   LGMS AI Voice Assistant HUD & Audio Visualizer
+   ========================================================================== */
+.text-cyan {
+    color: #06b6d4 !important;
+}
+
+.fs-xs {
+    font-size: 0.75rem !important;
+}
+
+.voice-topbar-btn {
+    border-color: rgba(6, 182, 212, 0.5) !important;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(168, 85, 247, 0.1));
+    transition: all 0.25s ease;
+}
+
+.voice-topbar-btn:hover {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.25), rgba(168, 85, 247, 0.25));
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+    transform: translateY(-1px);
+}
+
+.voice-hud-content {
+    background: rgba(15, 23, 42, 0.94) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(56, 189, 248, 0.25) !important;
+    border-radius: 18px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(6, 182, 212, 0.15);
+    overflow: hidden;
+}
+
+.voice-ai-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.voice-wave-canvas {
+    width: 100%;
+    max-width: 440px;
+    height: 70px;
+    display: block;
+    margin: 0 auto;
+}
+
+.voice-orb-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -15px;
+}
+
+.voice-orb {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    user-select: none;
+}
+
+/* Orb States */
+.orb-idle {
+    background: radial-gradient(circle at 35% 35%, #0284c7, #0f172a);
+    color: #e0f2fe;
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.2);
+    animation: orb-breathe 3.5s infinite ease-in-out;
+}
+
+.orb-listening {
+    background: radial-gradient(circle at 35% 35%, #ef4444, #881337);
+    color: #fff;
+    box-shadow: 0 0 35px rgba(239, 68, 68, 0.7), inset 0 0 20px rgba(255, 255, 255, 0.4);
+    animation: orb-pulse-listening 1.2s infinite ease-in-out;
+}
+
+.orb-processing {
+    background: radial-gradient(circle at 35% 35%, #a855f7, #3b0764);
+    color: #f3e8ff;
+    box-shadow: 0 0 35px rgba(168, 85, 247, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.3);
+    animation: orb-spin-glow 2s infinite linear;
+}
+
+.orb-speaking {
+    background: radial-gradient(circle at 35% 35%, #10b981, #064e3b);
+    color: #ecfdf5;
+    box-shadow: 0 0 35px rgba(16, 185, 129, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.4);
+    animation: orb-pulse-speaking 1s infinite ease-in-out;
+}
+
+.orb-error {
+    background: radial-gradient(circle at 35% 35%, #e11d48, #4c0519);
+    color: #ffe4e6;
+    box-shadow: 0 0 30px rgba(225, 29, 72, 0.6);
+}
+
+.voice-orb:hover {
+    transform: scale(1.06);
+}
+
+@keyframes orb-breathe {
+    0%, 100% {
+        box-shadow: 0 0 18px rgba(14, 165, 233, 0.35);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 32px rgba(14, 165, 233, 0.6);
+        transform: scale(1.03);
+    }
+}
+
+@keyframes orb-pulse-listening {
+    0%, 100% {
+        box-shadow: 0 0 25px rgba(239, 68, 68, 0.5);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 45px rgba(239, 68, 68, 0.85);
+        transform: scale(1.08);
+    }
+}
+
+@keyframes orb-pulse-speaking {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(16, 185, 129, 0.85);
+        transform: scale(1.06);
+    }
+}
+
+@keyframes orb-spin-glow {
+    0% {
+        transform: rotate(0deg);
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 45px rgba(168, 85, 247, 0.9);
+    }
+    100% {
+        transform: rotate(360deg);
+        box-shadow: 0 0 25px rgba(168, 85, 247, 0.5);
+    }
+}
+
+.voice-steps-box {
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.voice-step-card {
+    transition: all 0.2s ease;
+}
+
+.voice-step-output {
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 0.72rem;
+    max-height: 80px;
+    overflow-y: auto;
+}
+

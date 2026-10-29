@@ -37,10 +37,18 @@
     <!-- Reusable Loading overlay -->
     @await Html.PartialAsync("_LoadingOverlay")
 
+    <!-- Reusable Clone Repo and Add Project Modals -->
+    @await Html.PartialAsync("_GitProjectModals")
+
+    <!-- Reusable AI Voice Assistant HUD Modal -->
+    @await Html.PartialAsync("_VoiceAssistantModal")
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- LGMS Site JS -->
     <script src="~/js/site.js"></script>
+    <!-- LGMS Voice AI Assistant JS -->
+    <script src="~/js/voice-assistant.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

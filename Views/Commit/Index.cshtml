@@ -1,20 +1,28 @@
 @model List<LGMS.Models.GitCommit>
 @{
     var repo = (LGMS.Models.Repository)ViewBag.Repository;
-    ViewData["Title"] = $"{repo.Name} — Commits";
+    ViewData["Title"] = $"{repo.Name} — Commits & History";
 }
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 lgms-commit-section">
+    <!-- Breadcrumb & Top Bar -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
-                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-muted text-decoration-none">@repo.Name</a>
+                <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="text-muted text-decoration-none">
+                    <i class="bi bi-folder2-open me-1"></i> @repo.Name
+                </a>
                 <span class="text-muted">/</span>
                 <span class="badge branch-pill"><i class="bi bi-bezier2 me-1"></i> @repo.CurrentBranch</span>
             </div>
-            <h3 class="fw-bold mb-0">Commit History</h3>
+            <h3 class="fw-bold mb-0">
+                <i class="bi bi-clock-history me-2 text-primary"></i> History &amp; Commits
+            </h3>
         </div>
-        <div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/repository/@repo.Id?path=@Uri.EscapeDataString(repo.Path)" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+                <i class="bi bi-arrow-left"></i> <span>Dashboard</span>
+            </a>
             <button class="btn btn-outline-secondary d-flex align-items-center gap-1" onclick="location.reload();">
                 <i class="bi bi-arrow-clockwise"></i> <span>Refresh</span>
             </button>
@@ -22,30 +30,46 @@
     </div>
 
     <div class="row g-4">
-        <!-- Commit List Column -->
-        <div class="col-12 col-lg-7">
-            <div class="card border-0 shadow-sm bg-card">
-                <div class="card-header bg-transparent border-bottom py-3">
+        <!-- Commits List Column -->
+        <div class="col-12 col-xl-4 col-lg-5">
+            <div class="card border-0 shadow-sm bg-card h-100">
+                <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
                     <h5 class="fw-semibold mb-0">
-                        <i class="bi bi-clock-history me-2 text-primary"></i> Recent Commits (@Model.Count)
+                        <i class="bi bi-list-nested me-2 text-primary"></i> Commits Log (@Model.Count)
                     </h5>
+                    <span class="text-muted fs-xs">Select to view pages</span>
+                </div>
+                <!-- Search Commits Filter -->
+                <div class="p-2 border-bottom bg-subtle">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-transparent border-end-0 text-muted">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" id="commit-search-input" class="form-control form-control-sm border-start-0" 
+                               placeholder="Filter commits by message, author, or hash..." oninput="filterCommitsList()">
+                        <button class="btn btn-outline-secondary" type="button" onclick="clearCommitSearch()" title="Clear filter">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     @if (Model.Any())
                     {
-                        <div class="list-group list-group-flush" id="commit-list-group">
+                        <div class="list-group list-group-flush" id="commit-list-group" style="max-height: 820px; overflow-y: auto;">
                             @foreach (var commit in Model)
                             {
-                                <button type="button" class="list-group-item list-group-item-action p-3 text-start commit-item-btn" onclick="inspectCommit('@commit.Hash')">
+                                <button type="button" class="list-group-item list-group-item-action p-3 text-start commit-item-btn border-start-0 border-end-0" 
+                                        data-hash="@commit.Hash" 
+                                        data-search="@($"{commit.Hash} {commit.ShortHash} {commit.Subject} {commit.AuthorName}".ToLowerInvariant())"
+                                        onclick="inspectCommit('@commit.Hash')">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                         <span class="badge bg-secondary-subtle text-secondary font-monospace">@commit.ShortHash</span>
-                                        <span class="text-muted fs-xs">@commit.RelativeTime</span>
+                                        <span class="text-muted fs-xs"><i class="bi bi-clock me-1"></i>@commit.RelativeTime</span>
                                     </div>
-                                    <div class="fw-semibold text-primary mb-1">@commit.Subject</div>
-                                    <div class="text-muted fs-xs d-flex align-items-center gap-2">
+                                    <div class="fw-semibold text-primary mb-1 text-truncate commit-subject">@commit.Subject</div>
+                                    <div class="text-muted fs-xs d-flex align-items-center justify-content-between">
                                         <span><i class="bi bi-person me-1"></i> @commit.AuthorName</span>
-                                        <span>&bull;</span>
-                                        <span>@commit.Date.ToString("yyyy-MM-dd HH:mm")</span>
+                                        <span class="text-muted font-monospace">@commit.Date.ToString("yyyy-MM-dd HH:mm")</span>
                                     </div>
                                 </button>
                             }
@@ -62,16 +86,20 @@
             </div>
         </div>
 
-        <!-- Commit Details Inspector Column -->
-        <div class="col-12 col-lg-5">
-            <div class="card border-0 shadow-sm bg-card sticky-top" style="top: 80px;" id="commit-inspector-card">
-                <div class="card-header bg-transparent border-bottom py-3">
-                    <h5 class="fw-semibold mb-0"><i class="bi bi-info-circle me-2 text-muted"></i> Commit Details</h5>
+        <!-- Commit Details, Page-wise Changes, IDE & Diff Compare Column -->
+        <div class="col-12 col-xl-8 col-lg-7">
+            <div class="card border-0 shadow-sm bg-card" id="commit-inspector-card">
+                <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-semibold mb-0" id="inspector-title">
+                        <i class="bi bi-layers me-2 text-primary"></i> Commit Inspector
+                    </h5>
+                    <span class="badge bg-info-subtle text-info fs-xs" id="inspector-status-badge">Select a commit</span>
                 </div>
-                <div class="card-body p-4" id="inspector-body">
+                <div class="card-body p-3 p-md-4" id="inspector-body">
                     <div class="text-center text-muted p-5">
-                        <i class="bi bi-cursor text-muted fs-2 mb-2 d-block"></i>
-                        Click on any commit on the left to inspect its details and full patch diff.
+                        <i class="bi bi-cursor text-muted fs-1 mb-3 d-block"></i>
+                        <h5>No Commit Selected</h5>
+                        <p class="fs-sm mb-0">Select any commit on the left to see that commit's pages. From there you can download files, view and edit them in an IDE with <code>Ctrl + F</code> search, restore specific pages, and compare changes side-by-side.</p>
                     </div>
                 </div>
             </div>
@@ -79,60 +107,1507 @@
     </div>
 </div>
 
+<!-- ================= FULLSCREEN IDE MODAL ================= -->
+<div class="modal fade" id="ideFullscreenModal" tabindex="-1" aria-labelledby="ideModalTitle" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-dark text-light border-0">
+            <!-- Modal IDE Header -->
+            <div class="modal-header bg-dark border-bottom border-secondary py-2 px-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2 text-truncate">
+                    <i class="bi bi-code-square text-primary fs-5"></i>
+                    <span class="fw-bold fs-6 font-monospace" id="modal-ide-filename">File Viewer</span>
+                    <span class="badge bg-secondary-subtle text-secondary font-monospace fs-xs" id="modal-ide-commit-badge">Commit</span>
+                    <span class="badge bg-success-subtle text-success fs-xs" id="modal-ide-mode-badge">View Mode</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-info d-flex align-items-center gap-1" id="modal-btn-find" onclick="openIdeFindBar(true)" title="Search Text (Ctrl+F)">
+                        <i class="bi bi-search"></i>
+                        <span class="d-none d-sm-inline">Find</span>
+                        <kbd class="fs-xs bg-dark text-muted border border-secondary px-1">Ctrl+F</kbd>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" id="modal-btn-toggle-edit" onclick="toggleIdeEditMode(true)">
+                        <i class="bi bi-pencil-square"></i>
+                        <span id="modal-toggle-edit-text">Enable Edit Mode</span>
+                    </button>
+                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" id="modal-btn-save" onclick="saveIdeUpdatedContent(true)" style="display: none;">
+                        <i class="bi bi-save me-1"></i> <span>Save &amp; Update to Disk</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" onclick="downloadCurrentIdeFile()">
+                        <i class="bi bi-download"></i> <span class="d-none d-sm-inline">Download</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1" onclick="restoreCurrentIdeFile()">
+                        <i class="bi bi-arrow-counterclockwise"></i> <span class="d-none d-sm-inline">Restore to System</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+
+            <!-- Modal IDE Body -->
+            <div class="modal-body p-0 position-relative d-flex flex-column" style="height: calc(100vh - 90px); background: #14161b;">
+                <!-- Floating IDE Search Widget for Modal -->
+                <div id="modal-ide-find-widget" class="ide-find-bar shadow-lg border border-secondary rounded p-2" style="display: none;">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group input-group-sm" style="min-width: 220px;">
+                            <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="modal-find-input" class="form-control form-control-sm bg-dark text-light border-secondary font-monospace" placeholder="Find in code (Ctrl+F)..." oninput="runIdeSearch(this.value, true)" onkeydown="handleFindKeydown(event, true)">
+                            <button class="btn btn-dark border-secondary text-muted" type="button" onclick="findNavigate(-1, true)" title="Previous Match (Shift+Enter)"><i class="bi bi-chevron-up"></i></button>
+                            <button class="btn btn-dark border-secondary text-muted" type="button" onclick="findNavigate(1, true)" title="Next Match (Enter)"><i class="bi bi-chevron-down"></i></button>
+                        </div>
+                        <span class="badge bg-secondary font-monospace fs-xs" id="modal-find-counter">0 of 0</span>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 fs-xs" id="modal-match-case-btn" onclick="toggleFindCase(true)" title="Match Case">Aa</button>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 fs-xs" id="modal-match-word-btn" onclick="toggleFindWord(true)" title="Match Whole Word">\b</button>
+                        <button class="btn btn-sm btn-icon text-muted" onclick="closeIdeFindBar(true)" title="Close (Esc)"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <!-- Replace Section (Visible in Edit Mode) -->
+                    <div id="modal-replace-container" class="mt-2 pt-2 border-top border-secondary d-flex align-items-center gap-2" style="display: none;">
+                        <div class="input-group input-group-sm" style="min-width: 220px;">
+                            <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-pencil"></i></span>
+                            <input type="text" id="modal-replace-input" class="form-control form-control-sm bg-dark text-light border-secondary font-monospace" placeholder="Replace with...">
+                        </div>
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2 fs-xs" onclick="replaceOneMatch(true)">Replace</button>
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2 fs-xs" onclick="replaceAllMatches(true)">Replace All</button>
+                    </div>
+                </div>
+
+                <!-- Modal IDE Editor Container -->
+                <div class="d-flex flex-grow-1 overflow-hidden" id="modal-ide-container">
+                    <!-- Gutter / Line Numbers -->
+                    <div class="ide-gutter py-2 px-2 text-end user-select-none font-monospace fs-xs border-end border-secondary" id="modal-ide-gutter">
+                        1
+                    </div>
+                    <!-- Code Viewport -->
+                    <div class="ide-code-viewport flex-grow-1 p-2 font-monospace fs-xs overflow-auto position-relative" id="modal-ide-viewport" onscroll="syncModalGutterScroll()">
+                        <div id="modal-ide-code-content" class="ide-code-lines"></div>
+                        <textarea id="modal-ide-textarea" class="ide-code-textarea font-monospace fs-xs" spellcheck="false" style="display: none;" oninput="onIdeTextareaInput(true)" onscroll="syncModalTextareaGutter()"></textarea>
+                    </div>
+                </div>
+
+                <!-- Modal IDE Status Bar -->
+                <div class="ide-status-bar bg-dark border-top border-secondary py-1 px-3 d-flex justify-content-between align-items-center text-muted font-monospace fs-xs">
+                    <div class="d-flex align-items-center gap-3">
+                        <span id="modal-stat-lines"><i class="bi bi-list-ol me-1"></i> 0 lines</span>
+                        <span id="modal-stat-chars"><i class="bi bi-fonts me-1"></i> 0 chars</span>
+                        <span id="modal-stat-lang"><i class="bi bi-file-earmark-code me-1"></i> PlainText</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span>UTF-8</span>
+                        <span id="modal-stat-version">Commit Version</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Section styling */
+    .lgms-commit-section {
+        min-height: calc(100vh - 120px);
+    }
+    .commit-item-btn {
+        transition: all 0.18s ease-in-out;
+    }
+    .commit-item-btn:hover {
+        background-color: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.05));
+    }
+    .commit-item-btn.active-commit {
+        background-color: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.12)) !important;
+        border-left: 4px solid var(--bs-primary, #0d6efd) !important;
+    }
+    .file-item-row {
+        transition: all 0.15s ease-in-out;
+    }
+    .file-item-row:hover {
+        background-color: rgba(255, 255, 255, 0.04);
+    }
+    .file-item-row.active-file {
+        background-color: var(--bs-primary-bg-subtle, rgba(13, 110, 253, 0.12)) !important;
+        border-left: 3px solid var(--bs-primary, #0d6efd) !important;
+    }
+
+    /* Embedded IDE Styles */
+    .ide-container-box {
+        background: #12141a;
+        color: #d8dee9;
+        border: 1px solid var(--lgms-border, #2a2f3a);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+    }
+    .ide-top-toolbar {
+        background: #1a1e27;
+        border-bottom: 1px solid var(--lgms-border, #2a2f3a);
+        padding: 8px 12px;
+    }
+    .ide-gutter {
+        background: #141720;
+        color: #5c6370;
+        min-width: 48px;
+        line-height: 1.6;
+        user-select: none;
+        overflow: hidden;
+    }
+    .ide-code-viewport {
+        background: #12141a;
+        line-height: 1.6;
+        white-space: pre;
+        tab-size: 4;
+        min-height: 380px;
+        max-height: 540px;
+    }
+    .ide-code-lines {
+        color: #e5e7eb;
+        font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    }
+    .ide-code-line {
+        min-height: 1.6em;
+        padding: 0 4px;
+    }
+    .ide-code-line:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    .ide-code-textarea {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        color: #e5e7eb;
+        border: none;
+        outline: none;
+        resize: none;
+        padding: 8px;
+        line-height: 1.6;
+        tab-size: 4;
+        white-space: pre;
+    }
+
+    /* Search Bar Floating Widget */
+    .ide-find-bar {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        z-index: 1050;
+        background: #1f232d !important;
+        border: 1px solid #3b4252 !important;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+    }
+    .ide-search-match {
+        background-color: #f59e0b;
+        color: #000;
+        font-weight: bold;
+        border-radius: 2px;
+        padding: 0 1px;
+    }
+    .ide-search-match.active-match {
+        background-color: #38bdf8;
+        color: #000;
+        outline: 2px solid #0284c7;
+    }
+
+    /* Side-by-Side Diff Table */
+    .diff-split-container {
+        font-family: 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        background: #111318;
+        color: #e4e4e7;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--lgms-border, #2a2f3a);
+    }
+    .diff-split-scroll {
+        max-height: 480px;
+        overflow: auto;
+    }
+    .diff-split-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+    .diff-split-table th {
+        background: #181c25;
+        color: #9ca3af;
+        padding: 6px 10px;
+        font-size: 11px;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--lgms-border, #2a2f3a);
+    }
+    .diff-split-table td {
+        padding: 1px 8px;
+        vertical-align: top;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    .diff-line-num {
+        width: 44px;
+        min-width: 44px;
+        text-align: right;
+        color: #4b5563;
+        user-select: none;
+        padding-right: 6px !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.2);
+    }
+    .diff-col-del {
+        background: rgba(239, 68, 68, 0.12);
+        color: #fca5a5;
+    }
+    .diff-col-del .diff-line-num {
+        color: #f87171;
+        background: rgba(239, 68, 68, 0.18);
+    }
+    .diff-col-add {
+        background: rgba(34, 197, 94, 0.12);
+        color: #86efac;
+    }
+    .diff-col-add .diff-line-num {
+        color: #4ade80;
+        background: rgba(34, 197, 94, 0.18);
+    }
+    .diff-col-empty {
+        background: rgba(255, 255, 255, 0.015);
+        color: transparent;
+    }
+    .diff-hunk-row {
+        background: #1e2430;
+        color: #60a5fa;
+        font-weight: bold;
+        padding: 4px 10px;
+        border-top: 1px solid #2a3344;
+        border-bottom: 1px solid #2a3344;
+    }
+
+    /* Unified Diff Box */
+    .diff-unified-box {
+        font-family: 'Cascadia Code', 'JetBrains Mono', 'Consolas', monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        background: #111318;
+        color: #e4e4e7;
+        border-radius: 6px;
+        padding: 12px;
+        max-height: 480px;
+        overflow: auto;
+        white-space: pre-wrap;
+    }
+    .diff-line-add {
+        color: #4ade80;
+        background-color: rgba(74, 222, 128, 0.12);
+        display: block;
+    }
+    .diff-line-del {
+        color: #f87171;
+        background-color: rgba(248, 113, 113, 0.12);
+        display: block;
+    }
+    .diff-line-meta {
+        color: #60a5fa;
+        display: block;
+        font-weight: bold;
+    }
+</style>
+
 @section Scripts {
 <script>
     const repoPath = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(repo.Path));
+    const repoId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(repo.Id));
+    let currentCommitData = null;
+    let selectedFile = null;
+    let currentFileContentData = null;
+    let activeInspectorTab = 'compare'; // 'compare', 'ide', 'unified', 'full'
 
+    // State for IDE Find & Replace
+    let ideFindState = {
+        isOpen: false,
+        query: '',
+        matches: [],
+        currentIndex: -1,
+        matchCase: false,
+        matchWord: false,
+        isEditMode: false,
+        activeContent: ''
+    };
+
+    // Auto-inspect first commit if present
+    document.addEventListener("DOMContentLoaded", function () {
+        const firstBtn = document.querySelector(".commit-item-btn");
+        if (firstBtn) {
+            const hash = firstBtn.getAttribute("data-hash");
+            if (hash) inspectCommit(hash);
+        }
+
+        // Global hotkey Ctrl+F / Cmd+F handler
+        window.addEventListener("keydown", function (e) {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+                // If user is inside commit page, trigger Find bar
+                const modal = document.getElementById('ideFullscreenModal');
+                const isModalOpen = modal && modal.classList.contains('show');
+                if (isModalOpen) {
+                    e.preventDefault();
+                    openIdeFindBar(true);
+                } else if (activeInspectorTab === 'ide' || document.getElementById('inpage-ide-container')) {
+                    e.preventDefault();
+                    openIdeFindBar(false);
+                }
+            } else if (e.key === 'Escape') {
+                closeIdeFindBar(false);
+                closeIdeFindBar(true);
+            }
+        });
+    });
+
+    // ==========================================
+    // 1. Commit Log & Filtering
+    // ==========================================
+    function filterCommitsList() {
+        const term = (document.getElementById('commit-search-input')?.value || '').toLowerCase().trim();
+        const items = document.querySelectorAll('.commit-item-btn');
+        items.forEach(item => {
+            const searchData = item.getAttribute('data-search') || '';
+            item.style.display = (!term || searchData.includes(term)) ? '' : 'none';
+        });
+    }
+
+    function clearCommitSearch() {
+        const input = document.getElementById('commit-search-input');
+        if (input) {
+            input.value = '';
+            filterCommitsList();
+        }
+    }
+
+    // ==========================================
+    // 2. Commit Inspector & Page List
+    // ==========================================
     async function inspectCommit(hash) {
+        document.querySelectorAll('.commit-item-btn').forEach(btn => {
+            btn.classList.toggle('active-commit', btn.getAttribute('data-hash') === hash);
+        });
+
         const body = document.getElementById('inspector-body');
-        body.innerHTML = '<div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div> Loading commit data...</div>';
+        const badge = document.getElementById('inspector-status-badge');
+        badge.innerText = 'Loading...';
+        badge.className = 'badge bg-warning-subtle text-warning fs-xs';
+        body.innerHTML = `
+            <div class="text-center p-5 text-muted">
+                <div class="spinner-border text-primary spinner-border-sm me-2"></div>
+                Loading commit pages, file contents &amp; diff...
+            </div>
+        `;
 
         try {
             const res = await fetch(`/api/git/commit/details?path=${encodeURIComponent(repoPath)}&hash=${encodeURIComponent(hash)}`);
             const data = await res.json();
             if (!data.success) {
-                body.innerHTML = '<div class="text-danger p-3">Failed to inspect commit.</div>';
+                badge.innerText = 'Error';
+                badge.className = 'badge bg-danger-subtle text-danger fs-xs';
+                body.innerHTML = `<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle me-2"></i> Failed to inspect commit: ${data.error || 'Unknown error'}</div>`;
                 return;
             }
 
-            let filesHtml = '';
-            if (data.changedFiles && data.changedFiles.length) {
-                filesHtml = `<div class="mb-3">
-                    <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Changed Files (${data.filesCount})</div>
-                    <ul class="list-group list-group-flush border rounded font-monospace fs-xs" style="max-height: 150px; overflow-y:auto;">
-                        ${data.changedFiles.map(f => `<li class="list-group-item py-1 px-2">${f}</li>`).join('')}
+            currentCommitData = data;
+            selectedFile = null;
+            badge.innerText = `${data.filesCount || 0} page(s) in this commit`;
+            badge.className = 'badge bg-success-subtle text-success fs-xs';
+
+            renderCommitInspector(data);
+        } catch (e) {
+            badge.innerText = 'Network Error';
+            badge.className = 'badge bg-danger-subtle text-danger fs-xs';
+            body.innerHTML = `<div class="alert alert-danger mb-0"><i class="bi bi-wifi-off me-2"></i> Network error fetching commit details: ${e.message}</div>`;
+        }
+    }
+
+    function renderCommitInspector(data) {
+        const body = document.getElementById('inspector-body');
+        const shortHash = data.hash.substring(0, 7);
+
+        // Build Changed Files / Pages list HTML
+        let filesListHtml = '';
+        if (data.changedFiles && data.changedFiles.length > 0) {
+            filesListHtml = data.changedFiles.map((f, idx) => {
+                const statusBadge = getStatusBadge(f.statusCode || 'M');
+                const fileIcon = getFileIcon(f.path);
+                const statStr = (f.additions || f.deletions) 
+                    ? `<span class="badge bg-success-subtle text-success py-0 px-1 font-monospace">+${f.additions || 0}</span> <span class="badge bg-danger-subtle text-danger py-0 px-1 font-monospace">-${f.deletions || 0}</span>` 
+                    : '';
+                const activeClass = idx === 0 ? 'active-file' : '';
+                return `
+                    <div class="list-group-item list-group-item-action d-flex flex-column flex-md-row justify-content-between align-items-md-center p-2 file-item-row ${activeClass}" 
+                         data-file="${escapeHtml(f.path)}" 
+                         onclick="selectPageForInspection('${escapeHtml(f.path)}')">
+                        <div class="d-flex align-items-center gap-2 text-truncate mb-2 mb-md-0" style="cursor: pointer; flex: 1;">
+                            ${statusBadge}
+                            <i class="${fileIcon} text-muted"></i>
+                            <span class="font-monospace fs-xs text-truncate fw-semibold" title="${escapeHtml(f.path)}">${escapeHtml(f.path)}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1 ms-md-2 flex-wrap">
+                            ${statStr}
+                            <!-- Download Page -->
+                            <button class="btn btn-xs btn-outline-info py-0 px-2 fs-xs d-flex align-items-center gap-1" 
+                                    title="Download this specific file from commit ${shortHash}"
+                                    onclick="event.stopPropagation(); downloadCommitPage('${data.hash}', '${escapeHtml(f.path)}')">
+                                <i class="bi bi-download"></i> <span>Download</span>
+                            </button>
+                            <!-- View/Edit in IDE -->
+                            <button class="btn btn-xs btn-outline-primary py-0 px-2 fs-xs d-flex align-items-center gap-1" 
+                                    title="Open page in IDE Code Editor with Ctrl+F search & update"
+                                    onclick="event.stopPropagation(); openPageInIde('${escapeHtml(f.path)}')">
+                                <i class="bi bi-code-square"></i> <span>View in IDE</span>
+                            </button>
+                            <!-- Side-by-Side Compare -->
+                            <button class="btn btn-xs btn-outline-secondary py-0 px-2 fs-xs d-flex align-items-center gap-1" 
+                                    title="Compare side-by-side"
+                                    onclick="event.stopPropagation(); openSideBySideCompare('${escapeHtml(f.path)}')">
+                                <i class="bi bi-layout-split"></i> <span>Compare</span>
+                            </button>
+                            <!-- Restore Page -->
+                            <button class="btn btn-xs btn-outline-warning py-0 px-2 fs-xs d-flex align-items-center gap-1" 
+                                    title="Restore this page back into working system workspace"
+                                    onclick="event.stopPropagation(); restoreFile('${data.hash}', '${escapeHtml(f.path)}')">
+                                <i class="bi bi-arrow-counterclockwise"></i> <span>Restore</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            filesListHtml = '<div class="p-3 text-center text-muted fs-xs">No files modified recorded in this commit.</div>';
+        }
+
+        body.innerHTML = `
+            <!-- Commit Summary & Meta Bar -->
+            <div class="bg-subtle p-3 rounded mb-3 border">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted fs-xs text-uppercase fw-semibold">Commit:</span>
+                        <code class="font-monospace fs-sm text-primary fw-bold">${shortHash}</code>
+                        <button class="btn btn-sm btn-link text-muted p-0" title="Copy full hash" onclick="navigator.clipboard.writeText('${data.hash}'); LGMS.toast('Commit hash copied!', 'info');">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <!-- Commit-level Actions -->
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1" 
+                                title="Restore all files from this commit into working tree"
+                                onclick="restoreAllFromCommit('${data.hash}')">
+                            <i class="bi bi-arrow-counterclockwise"></i> <span>Restore All to System</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" 
+                                title="Revert this commit"
+                                onclick="revertCommit('${data.hash}')">
+                            <i class="bi bi-arrow-return-left"></i> <span>Revert Commit</span>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" 
+                                onclick="branchFromCommit('${data.hash}')">
+                            <i class="bi bi-bezier2"></i> <span>New Branch</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page-wise Changes List Section -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="text-muted fs-xs text-uppercase fw-semibold">
+                        <i class="bi bi-files me-1"></i> Pages Changed In Commit (${data.filesCount || 0})
+                    </div>
+                    <span class="text-muted fs-xs">Click page to compare, view in IDE, or download</span>
+                </div>
+                <div class="list-group list-group-flush border rounded" style="max-height: 220px; overflow-y: auto;" id="pages-list-container">
+                    ${filesListHtml}
+                </div>
+            </div>
+
+            <!-- Workspace View Tabs -->
+            <div class="border rounded bg-card overflow-hidden">
+                <div class="bg-subtle border-bottom px-3 pt-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <ul class="nav nav-tabs border-bottom-0" id="inspectorTabList" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link py-2 px-3 active font-monospace fs-xs d-flex align-items-center gap-1" 
+                                    id="tab-btn-compare" onclick="switchInspectorTab('compare')">
+                                <i class="bi bi-layout-split text-info"></i> <span>Side-by-Side Compare</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link py-2 px-3 font-monospace fs-xs d-flex align-items-center gap-1" 
+                                    id="tab-btn-ide" onclick="switchInspectorTab('ide')">
+                                <i class="bi bi-code-square text-primary"></i> <span>Edit-Type IDE (Ctrl+F)</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link py-2 px-3 font-monospace fs-xs d-flex align-items-center gap-1" 
+                                    id="tab-btn-unified" onclick="switchInspectorTab('unified')">
+                                <i class="bi bi-file-earmark-diff text-warning"></i> <span>Unified Patch</span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link py-2 px-3 font-monospace fs-xs d-flex align-items-center gap-1" 
+                                    id="tab-btn-full" onclick="switchInspectorTab('full')">
+                                <i class="bi bi-collection text-secondary"></i> <span>Full Commit Diff</span>
+                            </button>
+                        </li>
                     </ul>
-                </div>`;
+
+                    <!-- Quick Action Buttons for Active Selected File -->
+                    <div class="d-flex align-items-center gap-2 pb-2">
+                        <button class="btn btn-xs btn-outline-info d-flex align-items-center gap-1" 
+                                id="btn-quick-download" onclick="downloadSelectedPage()" title="Download selected page">
+                            <i class="bi bi-download"></i> <span>Download</span>
+                        </button>
+                        <button class="btn btn-xs btn-outline-warning d-flex align-items-center gap-1" 
+                                id="btn-quick-restore" onclick="restoreCurrentSelectedFile('${data.hash}')" title="Restore selected page to working directory">
+                            <i class="bi bi-arrow-counterclockwise"></i> <span>Restore</span>
+                        </button>
+                        <button class="btn btn-xs btn-outline-primary d-flex align-items-center gap-1" 
+                                onclick="openFullscreenIde()" title="Maximize IDE Editor to Fullscreen">
+                            <i class="bi bi-arrows-fullscreen"></i> <span>Fullscreen IDE</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Tab Content Mount Point -->
+                <div class="p-3" id="active-tab-viewport">
+                    <div class="text-center p-4 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2"></div> Loading file comparison...
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Default to first file if available
+        if (data.changedFiles && data.changedFiles.length > 0) {
+            selectPageForInspection(data.changedFiles[0].path);
+        } else {
+            renderFullCommitDiff();
+        }
+    }
+
+    // ==========================================
+    // 3. Page Selection & Tab Switching
+    // ==========================================
+    async function selectPageForInspection(filePath) {
+        if (!currentCommitData) return;
+        selectedFile = filePath;
+
+        // Highlight selected item in list
+        document.querySelectorAll('.file-item-row').forEach(el => {
+            el.classList.toggle('active-file', el.getAttribute('data-file') === filePath);
+        });
+
+        // Load file content and diff for this page
+        await loadPageData(filePath);
+        renderActiveTab();
+    }
+
+    async function loadPageData(filePath) {
+        try {
+            const [diffRes, contentRes] = await Promise.all([
+                fetch(`/api/git/commit/file-diff?path=${encodeURIComponent(repoPath)}&hash=${encodeURIComponent(currentCommitData.hash)}&file=${encodeURIComponent(filePath)}`),
+                fetch(`/api/git/commit/file-content?path=${encodeURIComponent(repoPath)}&hash=${encodeURIComponent(currentCommitData.hash)}&file=${encodeURIComponent(filePath)}`)
+            ]);
+
+            const diffData = await diffRes.json();
+            const contentData = await contentRes.json();
+
+            currentFileContentData = {
+                file: filePath,
+                diff: diffData.diff || '',
+                commitContent: contentData.commitContent || '',
+                parentContent: contentData.parentContent || '',
+                currentContent: contentData.currentContent || '',
+                existsOnDisk: contentData.existsOnDisk || false
+            };
+        } catch (e) {
+            console.error("Error fetching file details:", e);
+        }
+    }
+
+    function switchInspectorTab(tab) {
+        activeInspectorTab = tab;
+        document.querySelectorAll('#inspectorTabList .nav-link').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`tab-btn-${tab}`);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        renderActiveTab();
+    }
+
+    function renderActiveTab() {
+        const viewport = document.getElementById('active-tab-viewport');
+        if (!viewport) return;
+
+        if (activeInspectorTab === 'compare') {
+            renderSideBySideTab(viewport);
+        } else if (activeInspectorTab === 'ide') {
+            renderIdeTab(viewport);
+        } else if (activeInspectorTab === 'unified') {
+            renderUnifiedTab(viewport);
+        } else if (activeInspectorTab === 'full') {
+            renderFullCommitDiff();
+        }
+    }
+
+    // ==========================================
+    // 4. Tab 1: Side-by-Side Diff Compare
+    // ==========================================
+    let compareTargetMode = 'parent'; // 'parent' (Commit vs Previous) or 'working' (Commit vs Working Copy)
+
+    function renderSideBySideTab(container) {
+        if (!currentFileContentData || !selectedFile) {
+            container.innerHTML = '<div class="text-center p-4 text-muted">No page selected to compare.</div>';
+            return;
+        }
+
+        const shortHash = currentCommitData ? currentCommitData.hash.substring(0, 7) : 'Commit';
+        const leftTitle = compareTargetMode === 'parent' ? `Parent Commit (Previous)` : `Commit ${shortHash}`;
+        const rightTitle = compareTargetMode === 'parent' ? `Commit ${shortHash} (Selected)` : `Working Tree (On Disk)`;
+
+        const splitRows = parseSideBySideDiff(currentFileContentData.diff);
+
+        container.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted fs-xs fw-semibold text-uppercase">Comparing Page:</span>
+                    <span class="badge bg-secondary-subtle text-secondary font-monospace">${escapeHtml(selectedFile)}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary py-0 px-2 fs-xs ${compareTargetMode === 'parent' ? 'active' : ''}" 
+                                onclick="setCompareTarget('parent')">Commit vs Parent</button>
+                        <button class="btn btn-outline-secondary py-0 px-2 fs-xs ${compareTargetMode === 'working' ? 'active' : ''}" 
+                                onclick="setCompareTarget('working')">Commit vs Working Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side by Side Split View Table -->
+            <div class="diff-split-container">
+                <div class="diff-split-scroll" id="diff-split-scroll-box">
+                    <table class="diff-split-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50%;"><i class="bi bi-dash-circle text-danger me-1"></i> ${leftTitle}</th>
+                                <th style="width: 50%;"><i class="bi bi-plus-circle text-success me-1"></i> ${rightTitle}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${splitRows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    }
+
+    function setCompareTarget(mode) {
+        compareTargetMode = mode;
+        renderActiveTab();
+    }
+
+    function parseSideBySideDiff(diffText) {
+        if (!diffText || diffText.trim().length === 0) {
+            return '<tr><td colspan="2" class="p-4 text-center text-muted">No text changes recorded for this file (binary or unchanged).</td></tr>';
+        }
+
+        const lines = diffText.split('\n');
+        let html = '';
+        let leftLine = 0;
+        let rightLine = 0;
+        let pendingDeletions = [];
+        let pendingAdditions = [];
+
+        function flushPairs() {
+            const maxLen = Math.max(pendingDeletions.length, pendingAdditions.length);
+            for (let i = 0; i < maxLen; i++) {
+                const del = pendingDeletions[i];
+                const add = pendingAdditions[i];
+
+                let leftNum = del ? del.num : '';
+                let leftText = del ? escapeHtml(del.text) : '';
+                let leftClass = del ? 'diff-col-del' : 'diff-col-empty';
+
+                let rightNum = add ? add.num : '';
+                let rightText = add ? escapeHtml(add.text) : '';
+                let rightClass = add ? 'diff-col-add' : 'diff-col-empty';
+
+                html += `
+                    <tr>
+                        <td class="${leftClass}">
+                            <span class="diff-line-num d-inline-block">${leftNum}</span>
+                            <span>${leftText}</span>
+                        </td>
+                        <td class="${rightClass}">
+                            <span class="diff-line-num d-inline-block">${rightNum}</span>
+                            <span>${rightText}</span>
+                        </td>
+                    </tr>
+                `;
+            }
+            pendingDeletions = [];
+            pendingAdditions = [];
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            if (line.startsWith('diff --git') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++')) {
+                continue;
             }
 
-            body.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div>
-                        <span class="text-muted fs-xs text-uppercase fw-semibold d-block">Commit Hash</span>
-                        <code class="font-monospace fs-sm text-break">${data.hash}</code>
+            if (line.startsWith('@@')) {
+                flushPairs();
+                // Parse hunk header: @@ -l,s +r,s @@
+                const match = line.match(/@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@/);
+                if (match) {
+                    leftLine = parseInt(match[1], 10) - 1;
+                    rightLine = parseInt(match[2], 10) - 1;
+                }
+                html += `<tr><td colspan="2" class="diff-hunk-row">${escapeHtml(line)}</td></tr>`;
+                continue;
+            }
+
+            if (line.startsWith('-')) {
+                leftLine++;
+                pendingDeletions.push({ num: leftLine, text: line.substring(1) });
+            } else if (line.startsWith('+')) {
+                rightLine++;
+                pendingAdditions.push({ num: rightLine, text: line.substring(1) });
+            } else {
+                flushPairs();
+                leftLine++;
+                rightLine++;
+                const text = line.startsWith(' ') ? line.substring(1) : line;
+                html += `
+                    <tr>
+                        <td><span class="diff-line-num d-inline-block">${leftLine}</span> <span>${escapeHtml(text)}</span></td>
+                        <td><span class="diff-line-num d-inline-block">${rightLine}</span> <span>${escapeHtml(text)}</span></td>
+                    </tr>
+                `;
+            }
+        }
+        flushPairs();
+        return html;
+    }
+
+    // ==========================================
+    // 5. Tab 2: Edit-Type IDE Viewer (Ctrl+F)
+    // ==========================================
+    function renderIdeTab(container) {
+        if (!currentFileContentData || !selectedFile) {
+            container.innerHTML = '<div class="text-center p-4 text-muted">No page selected to view in IDE.</div>';
+            return;
+        }
+
+        const content = ideFindState.isEditMode ? (ideFindState.activeContent || currentFileContentData.currentContent || currentFileContentData.commitContent) : currentFileContentData.commitContent;
+        ideFindState.activeContent = content;
+
+        const lines = content.split('\n');
+        const gutterHtml = lines.map((_, i) => `<div>${i + 1}</div>`).join('');
+        const shortHash = currentCommitData ? currentCommitData.hash.substring(0, 7) : 'Commit';
+
+        container.innerHTML = `
+            <div class="ide-container-box" id="inpage-ide-container">
+                <!-- Inpage IDE Toolbar -->
+                <div class="ide-top-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-code-slash text-primary"></i>
+                        <span class="font-monospace fs-xs fw-bold">${escapeHtml(selectedFile)}</span>
+                        <span class="badge bg-secondary-subtle text-secondary font-monospace fs-xs">${shortHash}</span>
+                        <span class="badge ${ideFindState.isEditMode ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success'} fs-xs" id="inpage-ide-mode-badge">
+                            ${ideFindState.isEditMode ? 'Edit Mode (Working Disk)' : 'Commit View Mode (Read-Only)'}
+                        </span>
                     </div>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText('${data.hash}'); LGMS.toast('Hash copied', 'info');">
-                        <i class="bi bi-clipboard"></i>
-                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Find Hotkey button -->
+                        <button class="btn btn-xs btn-outline-info d-flex align-items-center gap-1" onclick="openIdeFindBar(false)" title="Search inside code (Ctrl + F)">
+                            <i class="bi bi-search"></i> <span>Find</span>
+                            <kbd class="fs-xs bg-dark text-muted border border-secondary px-1">Ctrl+F</kbd>
+                        </button>
+                        <!-- Toggle Edit Mode -->
+                        <button class="btn btn-xs btn-outline-secondary d-flex align-items-center gap-1" onclick="toggleIdeEditMode(false)">
+                            <i class="bi bi-pencil-square"></i>
+                            <span id="inpage-toggle-edit-text">${ideFindState.isEditMode ? 'Switch to View' : 'Enable Edit'}</span>
+                        </button>
+                        <!-- Save Updates to Disk -->
+                        <button class="btn btn-xs btn-primary d-flex align-items-center gap-1" id="inpage-btn-save" onclick="saveIdeUpdatedContent(false)" style="${ideFindState.isEditMode ? '' : 'display: none;'}">
+                            <i class="bi bi-save"></i> <span>Save &amp; Update to Disk</span>
+                        </button>
+                    </div>
                 </div>
-                ${filesHtml}
-                <div class="mb-3">
-                    <div class="text-muted fs-xs text-uppercase fw-semibold mb-1">Commit Diff Patch</div>
-                    <div class="bg-subtle p-2 rounded font-monospace fs-xs" style="max-height: 300px; overflow: auto; white-space: pre-wrap;">${escapeHtml(data.diff || "No diff")}</div>
+
+                <!-- Floating Search Widget for in-page IDE -->
+                <div id="inpage-ide-find-widget" class="ide-find-bar shadow rounded p-2" style="display: none;">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="input-group input-group-sm" style="min-width: 200px;">
+                            <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="inpage-find-input" class="form-control form-control-sm bg-dark text-light border-secondary font-monospace" placeholder="Find in code (Ctrl+F)..." oninput="runIdeSearch(this.value, false)" onkeydown="handleFindKeydown(event, false)">
+                            <button class="btn btn-dark border-secondary text-muted" type="button" onclick="findNavigate(-1, false)" title="Previous Match (Shift+Enter)"><i class="bi bi-chevron-up"></i></button>
+                            <button class="btn btn-dark border-secondary text-muted" type="button" onclick="findNavigate(1, false)" title="Next Match (Enter)"><i class="bi bi-chevron-down"></i></button>
+                        </div>
+                        <span class="badge bg-secondary font-monospace fs-xs" id="inpage-find-counter">0 of 0</span>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 fs-xs" id="inpage-match-case-btn" onclick="toggleFindCase(false)" title="Match Case">Aa</button>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 fs-xs" id="inpage-match-word-btn" onclick="toggleFindWord(false)" title="Match Whole Word">\b</button>
+                        <button class="btn btn-sm btn-icon text-muted" onclick="closeIdeFindBar(false)" title="Close (Esc)"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <!-- Replace Section in Edit Mode -->
+                    <div id="inpage-replace-container" class="mt-2 pt-2 border-top border-secondary d-flex align-items-center gap-2" style="display: none;">
+                        <div class="input-group input-group-sm" style="min-width: 200px;">
+                            <span class="input-group-text bg-dark border-secondary text-muted"><i class="bi bi-pencil"></i></span>
+                            <input type="text" id="inpage-replace-input" class="form-control form-control-sm bg-dark text-light border-secondary font-monospace" placeholder="Replace with...">
+                        </div>
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2 fs-xs" onclick="replaceOneMatch(false)">Replace</button>
+                        <button class="btn btn-sm btn-outline-warning py-0 px-2 fs-xs" onclick="replaceAllMatches(false)">Replace All</button>
+                    </div>
                 </div>
-                <div class="d-grid gap-2">
-                    <button class="btn btn-sm btn-outline-primary" onclick="branchFromCommit('${data.hash}')">
-                        <i class="bi bi-bezier2 me-1"></i> Create Branch from this Commit
-                    </button>
+
+                <!-- Code Workspace -->
+                <div class="d-flex" style="min-height: 400px; max-height: 540px; overflow: hidden; position: relative;">
+                    <!-- Gutter -->
+                    <div class="ide-gutter py-2 px-2 text-end font-monospace fs-xs border-end" id="inpage-ide-gutter">
+                        ${gutterHtml}
+                    </div>
+                    <!-- Viewport -->
+                    <div class="ide-code-viewport flex-grow-1 p-2 font-monospace fs-xs overflow-auto position-relative" id="inpage-ide-viewport" onscroll="syncInpageGutterScroll()">
+                        <div id="inpage-ide-code-content" class="ide-code-lines" style="${ideFindState.isEditMode ? 'display: none;' : ''}">
+                            ${renderCodeLinesHtml(content)}
+                        </div>
+                        <textarea id="inpage-ide-textarea" class="ide-code-textarea font-monospace fs-xs" spellcheck="false" 
+                                  style="${ideFindState.isEditMode ? '' : 'display: none;'}" 
+                                  oninput="onIdeTextareaInput(false)" onscroll="syncInpageTextareaGutter()">${escapeHtml(content)}</textarea>
+                    </div>
                 </div>
-            `;
+
+                <!-- Status Bar -->
+                <div class="ide-top-toolbar py-1 px-3 d-flex justify-content-between align-items-center text-muted font-monospace fs-xs">
+                    <div class="d-flex align-items-center gap-3">
+                        <span><i class="bi bi-list-ol me-1"></i> ${lines.length} lines</span>
+                        <span><i class="bi bi-fonts me-1"></i> ${content.length} chars</span>
+                        <span>${getFileLanguage(selectedFile)}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span>UTF-8</span>
+                        <span>Commit ${shortHash}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCodeLinesHtml(content) {
+        if (!content) return '<div class="p-3 text-muted">Empty file.</div>';
+        const lines = content.split('\n');
+        return lines.map((line, idx) => {
+            return `<div class="ide-code-line" id="line-${idx}">${escapeHtml(line) || '&nbsp;'}</div>`;
+        }).join('');
+    }
+
+    function toggleIdeEditMode(isModal) {
+        ideFindState.isEditMode = !ideFindState.isEditMode;
+
+        if (isModal) {
+            const badge = document.getElementById('modal-ide-mode-badge');
+            const toggleText = document.getElementById('modal-toggle-edit-text');
+            const saveBtn = document.getElementById('modal-btn-save');
+            const codeContent = document.getElementById('modal-ide-code-content');
+            const textarea = document.getElementById('modal-ide-textarea');
+            const replaceBox = document.getElementById('modal-replace-container');
+
+            if (ideFindState.isEditMode) {
+                badge.innerText = 'Edit Mode (Workspace)';
+                badge.className = 'badge bg-warning-subtle text-warning fs-xs';
+                toggleText.innerText = 'Switch to View Mode';
+                saveBtn.style.display = '';
+                codeContent.style.display = 'none';
+                textarea.style.display = '';
+                if (replaceBox) replaceBox.style.display = '';
+                textarea.value = ideFindState.activeContent;
+                textarea.focus();
+            } else {
+                badge.innerText = 'View Mode (Commit)';
+                badge.className = 'badge bg-success-subtle text-success fs-xs';
+                toggleText.innerText = 'Enable Edit Mode';
+                saveBtn.style.display = 'none';
+                textarea.style.display = 'none';
+                codeContent.style.display = '';
+                if (replaceBox) replaceBox.style.display = 'none';
+                codeContent.innerHTML = renderCodeLinesHtml(ideFindState.activeContent);
+            }
+        } else {
+            renderIdeTab(document.getElementById('active-tab-viewport'));
+        }
+    }
+
+    function onIdeTextareaInput(isModal) {
+        const textarea = document.getElementById(isModal ? 'modal-ide-textarea' : 'inpage-ide-textarea');
+        if (!textarea) return;
+
+        ideFindState.activeContent = textarea.value;
+        const lineCount = textarea.value.split('\n').length;
+        const gutter = document.getElementById(isModal ? 'modal-ide-gutter' : 'inpage-ide-gutter');
+        if (gutter) {
+            let html = '';
+            for (let i = 1; i <= lineCount; i++) html += `<div>${i}</div>`;
+            gutter.innerHTML = html;
+        }
+
+        if (isModal) {
+            document.getElementById('modal-stat-lines').innerHTML = `<i class="bi bi-list-ol me-1"></i> ${lineCount} lines`;
+            document.getElementById('modal-stat-chars').innerHTML = `<i class="bi bi-fonts me-1"></i> ${textarea.value.length} chars`;
+        }
+    }
+
+    // ==========================================
+    // 6. IDE Text Search (Ctrl + F)
+    // ==========================================
+    function openIdeFindBar(isModal) {
+        ideFindState.isOpen = true;
+        const widget = document.getElementById(isModal ? 'modal-ide-find-widget' : 'inpage-ide-find-widget');
+        const input = document.getElementById(isModal ? 'modal-find-input' : 'inpage-find-input');
+        if (widget && input) {
+            widget.style.display = '';
+            input.focus();
+            input.select();
+        }
+    }
+
+    function closeIdeFindBar(isModal) {
+        ideFindState.isOpen = false;
+        const widget = document.getElementById(isModal ? 'modal-ide-find-widget' : 'inpage-ide-find-widget');
+        if (widget) widget.style.display = 'none';
+        clearSearchHighlights(isModal);
+    }
+
+    function toggleFindCase(isModal) {
+        ideFindState.matchCase = !ideFindState.matchCase;
+        const btn = document.getElementById(isModal ? 'modal-match-case-btn' : 'inpage-match-case-btn');
+        if (btn) btn.classList.toggle('active', ideFindState.matchCase);
+        const input = document.getElementById(isModal ? 'modal-find-input' : 'inpage-find-input');
+        if (input) runIdeSearch(input.value, isModal);
+    }
+
+    function toggleFindWord(isModal) {
+        ideFindState.matchWord = !ideFindState.matchWord;
+        const btn = document.getElementById(isModal ? 'modal-match-word-btn' : 'inpage-match-word-btn');
+        if (btn) btn.classList.toggle('active', ideFindState.matchWord);
+        const input = document.getElementById(isModal ? 'modal-find-input' : 'inpage-find-input');
+        if (input) runIdeSearch(input.value, isModal);
+    }
+
+    function handleFindKeydown(e, isModal) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            findNavigate(e.shiftKey ? -1 : 1, isModal);
+        } else if (e.key === 'Escape') {
+            closeIdeFindBar(isModal);
+        }
+    }
+
+    function runIdeSearch(query, isModal) {
+        ideFindState.query = query;
+        ideFindState.matches = [];
+        ideFindState.currentIndex = -1;
+
+        const counter = document.getElementById(isModal ? 'modal-find-counter' : 'inpage-find-counter');
+
+        if (!query) {
+            if (counter) counter.innerText = '0 of 0';
+            clearSearchHighlights(isModal);
+            return;
+        }
+
+        const content = ideFindState.activeContent || '';
+        const lines = content.split('\n');
+
+        let regex;
+        try {
+            let pattern = escapeRegExp(query);
+            if (ideFindState.matchWord) pattern = `\\b${pattern}\\b`;
+            regex = new RegExp(pattern, ideFindState.matchCase ? 'g' : 'gi');
         } catch (e) {
-            body.innerHTML = '<div class="text-danger p-3">Error fetching commit details.</div>';
+            return;
+        }
+
+        lines.forEach((line, lineIdx) => {
+            let match;
+            while ((match = regex.exec(line)) !== null) {
+                ideFindState.matches.push({
+                    lineIndex: lineIdx,
+                    startIndex: match.index,
+                    endIndex: match.index + match[0].length,
+                    text: match[0]
+                });
+            }
+        });
+
+        if (counter) {
+            counter.innerText = ideFindState.matches.length > 0 ? `1 of ${ideFindState.matches.length}` : '0 of 0';
+        }
+
+        if (ideFindState.matches.length > 0) {
+            ideFindState.currentIndex = 0;
+            highlightMatchesInIde(isModal);
+            scrollToActiveMatch(isModal);
+        } else {
+            clearSearchHighlights(isModal);
+        }
+    }
+
+    function findNavigate(direction, isModal) {
+        if (ideFindState.matches.length === 0) return;
+
+        ideFindState.currentIndex += direction;
+        if (ideFindState.currentIndex >= ideFindState.matches.length) {
+            ideFindState.currentIndex = 0;
+        } else if (ideFindState.currentIndex < 0) {
+            ideFindState.currentIndex = ideFindState.matches.length - 1;
+        }
+
+        const counter = document.getElementById(isModal ? 'modal-find-counter' : 'inpage-find-counter');
+        if (counter) {
+            counter.innerText = `${ideFindState.currentIndex + 1} of ${ideFindState.matches.length}`;
+        }
+
+        highlightMatchesInIde(isModal);
+        scrollToActiveMatch(isModal);
+    }
+
+    function highlightMatchesInIde(isModal) {
+        if (ideFindState.isEditMode) return; // In textarea mode, highlights are shown via find navigation
+
+        const container = document.getElementById(isModal ? 'modal-ide-code-content' : 'inpage-ide-code-content');
+        if (!container || !ideFindState.query) return;
+
+        const content = ideFindState.activeContent || '';
+        const lines = content.split('\n');
+        let regex = new RegExp(escapeRegExp(ideFindState.query), ideFindState.matchCase ? 'g' : 'gi');
+
+        let matchCounter = 0;
+        const html = lines.map((line, lIdx) => {
+            let highlighted = escapeHtml(line).replace(regex, (m) => {
+                const isActive = matchCounter === ideFindState.currentIndex;
+                matchCounter++;
+                return `<mark class="ide-search-match ${isActive ? 'active-match' : ''}">${m}</mark>`;
+            });
+            return `<div class="ide-code-line" id="${isModal ? 'modal' : 'inpage'}-line-${lIdx}">${highlighted || '&nbsp;'}</div>`;
+        }).join('');
+
+        container.innerHTML = html;
+    }
+
+    function scrollToActiveMatch(isModal) {
+        if (ideFindState.currentIndex < 0 || ideFindState.currentIndex >= ideFindState.matches.length) return;
+        const current = ideFindState.matches[ideFindState.currentIndex];
+
+        if (ideFindState.isEditMode) {
+            const textarea = document.getElementById(isModal ? 'modal-ide-textarea' : 'inpage-ide-textarea');
+            if (textarea) {
+                // Calculate character offset of current match in textarea
+                const lines = textarea.value.split('\n');
+                let charOffset = 0;
+                for (let i = 0; i < current.lineIndex; i++) {
+                    charOffset += lines[i].length + 1;
+                }
+                charOffset += current.startIndex;
+                textarea.focus();
+                textarea.setSelectionRange(charOffset, charOffset + current.text.length);
+            }
+        } else {
+            const lineEl = document.getElementById(`${isModal ? 'modal' : 'inpage'}-line-${current.lineIndex}`);
+            if (lineEl) {
+                lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }
+
+    function clearSearchHighlights(isModal) {
+        if (!ideFindState.isEditMode) {
+            const container = document.getElementById(isModal ? 'modal-ide-code-content' : 'inpage-ide-code-content');
+            if (container) {
+                container.innerHTML = renderCodeLinesHtml(ideFindState.activeContent);
+            }
+        }
+    }
+
+    // Replace Match logic for Edit Mode
+    function replaceOneMatch(isModal) {
+        if (!ideFindState.isEditMode || ideFindState.matches.length === 0 || ideFindState.currentIndex < 0) return;
+        const replaceInput = document.getElementById(isModal ? 'modal-replace-input' : 'inpage-replace-input');
+        const replaceVal = replaceInput ? replaceInput.value : '';
+
+        const current = ideFindState.matches[ideFindState.currentIndex];
+        const lines = ideFindState.activeContent.split('\n');
+        const line = lines[current.lineIndex];
+
+        lines[current.lineIndex] = line.substring(0, current.startIndex) + replaceVal + line.substring(current.endIndex);
+        ideFindState.activeContent = lines.join('\n');
+
+        const textarea = document.getElementById(isModal ? 'modal-ide-textarea' : 'inpage-ide-textarea');
+        if (textarea) textarea.value = ideFindState.activeContent;
+
+        runIdeSearch(ideFindState.query, isModal);
+    }
+
+    function replaceAllMatches(isModal) {
+        if (!ideFindState.isEditMode || !ideFindState.query) return;
+        const replaceInput = document.getElementById(isModal ? 'modal-replace-input' : 'inpage-replace-input');
+        const replaceVal = replaceInput ? replaceInput.value : '';
+
+        let pattern = escapeRegExp(ideFindState.query);
+        if (ideFindState.matchWord) pattern = `\\b${pattern}\\b`;
+        const regex = new RegExp(pattern, ideFindState.matchCase ? 'g' : 'gi');
+
+        ideFindState.activeContent = ideFindState.activeContent.replace(regex, replaceVal);
+        const textarea = document.getElementById(isModal ? 'modal-ide-textarea' : 'inpage-ide-textarea');
+        if (textarea) textarea.value = ideFindState.activeContent;
+
+        runIdeSearch(ideFindState.query, isModal);
+        LGMS.toast("All matches replaced in editor", "info");
+    }
+
+    // ==========================================
+    // 7. Check & Update It (Save Updated Code to Disk)
+    // ==========================================
+    async function saveIdeUpdatedContent(isModal) {
+        if (!selectedFile) return;
+
+        const contentToSave = ideFindState.activeContent;
+        LGMS.showLoading(`Saving '${selectedFile}' to workspace disk...`, `Writing updated code to ${selectedFile}`);
+
+        try {
+            const res = await fetch('/api/git/commit/update-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: repoPath,
+                    file: selectedFile,
+                    content: contentToSave
+                })
+            });
+
+            const data = await res.json();
+            LGMS.hideLoading();
+
+            if (data.success) {
+                LGMS.toast(`✓ Page '${selectedFile}' updated successfully on disk!`, "success");
+                // Reload diff and file data to sync compare view
+                await loadPageData(selectedFile);
+                if (!isModal && activeInspectorTab === 'compare') {
+                    renderSideBySideTab(document.getElementById('active-tab-viewport'));
+                }
+            } else {
+                LGMS.toast(data.error || "Failed to update file", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast(`Error updating file: ${e.message}`, "error");
+        }
+    }
+
+    // ==========================================
+    // 8. Fullscreen IDE Modal Controls
+    // ==========================================
+    function openFullscreenIde() {
+        if (!selectedFile || !currentFileContentData) {
+            LGMS.toast("Please select a page first", "warning");
+            return;
+        }
+
+        const modalEl = document.getElementById('ideFullscreenModal');
+        const modal = new bootstrap.Modal(modalEl);
+
+        document.getElementById('modal-ide-filename').innerText = selectedFile;
+        document.getElementById('modal-ide-commit-badge').innerText = currentCommitData.hash.substring(0, 7);
+
+        const content = ideFindState.activeContent || currentFileContentData.commitContent;
+        ideFindState.activeContent = content;
+
+        const lines = content.split('\n');
+        document.getElementById('modal-ide-gutter').innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join('');
+        document.getElementById('modal-ide-code-content').innerHTML = renderCodeLinesHtml(content);
+        document.getElementById('modal-ide-textarea').value = content;
+
+        document.getElementById('modal-stat-lines').innerHTML = `<i class="bi bi-list-ol me-1"></i> ${lines.length} lines`;
+        document.getElementById('modal-stat-chars').innerHTML = `<i class="bi bi-fonts me-1"></i> ${content.length} chars`;
+        document.getElementById('modal-stat-lang').innerHTML = `<i class="bi bi-file-earmark-code me-1"></i> ${getFileLanguage(selectedFile)}`;
+
+        modal.show();
+    }
+
+    function openPageInIde(filePath) {
+        selectPageForInspection(filePath).then(() => {
+            switchInspectorTab('ide');
+        });
+    }
+
+    function openSideBySideCompare(filePath) {
+        selectPageForInspection(filePath).then(() => {
+            switchInspectorTab('compare');
+        });
+    }
+
+    // ==========================================
+    // 9. Download Page Functionality
+    // ==========================================
+    function downloadCommitPage(hash, filePath) {
+        const downloadUrl = `/api/git/commit/download-file?path=${encodeURIComponent(repoPath)}&hash=${encodeURIComponent(hash)}&file=${encodeURIComponent(filePath)}`;
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filePath.split('/').pop() || 'download';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        LGMS.toast(`Downloading '${filePath}' from commit ${hash.substring(0, 7)}...`, "info");
+    }
+
+    function downloadSelectedPage() {
+        if (!selectedFile || !currentCommitData) {
+            LGMS.toast("Select a page to download first", "warning");
+            return;
+        }
+        downloadCommitPage(currentCommitData.hash, selectedFile);
+    }
+
+    function downloadCurrentIdeFile() {
+        if (!selectedFile) return;
+        const content = ideFindState.activeContent;
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = selectedFile.split('/').pop() || 'file.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        LGMS.toast(`Downloaded '${selectedFile}' from IDE editor`, "success");
+    }
+
+    // ==========================================
+    // 10. Restore Page to Workspace Functionality
+    // ==========================================
+    async function restoreFile(hash, filePath) {
+        const shortHash = hash.substring(0, 7);
+        if (!confirm(`Are you sure you want to restore '${filePath}' from commit ${shortHash} into your working directory?\n\nThis will restore this page into your local repository workspace.`)) {
+            return;
+        }
+
+        LGMS.showLoading(`Restoring ${filePath}...`, `git checkout ${shortHash} -- ${filePath}`);
+        try {
+            const res = await fetch('/api/git/commit/restore-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: repoPath, hash: hash, file: filePath })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ Page '${filePath}' restored from commit ${shortHash}!`, "success");
+                // Reload diff data for active page
+                await loadPageData(filePath);
+                renderActiveTab();
+            } else {
+                LGMS.toast(data.message || "Failed to restore file", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast(`Error restoring file: ${e.message}`, "error");
+        }
+    }
+
+    function restoreCurrentSelectedFile(hash) {
+        if (!selectedFile) {
+            LGMS.toast("Please select a file to restore first.", "warning");
+            return;
+        }
+        restoreFile(hash, selectedFile);
+    }
+
+    function restoreCurrentIdeFile() {
+        if (!selectedFile || !currentCommitData) return;
+        restoreFile(currentCommitData.hash, selectedFile);
+    }
+
+    // Restore All Files from Commit
+    async function restoreAllFromCommit(hash) {
+        const shortHash = hash.substring(0, 7);
+        if (!confirm(`Are you sure you want to restore ALL files from commit ${shortHash} into your working directory?\n\nThis will apply all changes from this commit into your system workspace.`)) {
+            return;
+        }
+
+        LGMS.showLoading(`Restoring all changes from ${shortHash}...`, `git checkout ${shortHash} -- .`);
+        try {
+            const res = await fetch('/api/git/commit/restore-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: repoPath, hash: hash })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ All changes from commit ${shortHash} restored to system!`, "success");
+                if (selectedFile) await loadPageData(selectedFile);
+                renderActiveTab();
+            } else {
+                LGMS.toast(data.message || "Failed to restore commit changes", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast(`Error restoring commit: ${e.message}`, "error");
+        }
+    }
+
+    // Revert Commit in Git
+    async function revertCommit(hash) {
+        const shortHash = hash.substring(0, 7);
+        if (!confirm(`Are you sure you want to revert commit ${shortHash}?\n\nThis will create a new reverse commit to undo this commit.`)) {
+            return;
+        }
+
+        LGMS.showLoading(`Reverting commit ${shortHash}...`, `git revert --no-edit ${shortHash}`);
+        try {
+            const res = await fetch('/api/git/commit/revert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: repoPath, hash: hash })
+            });
+            const data = await res.json();
+            LGMS.hideLoading();
+            if (data.success) {
+                LGMS.toast(`✓ Commit ${shortHash} successfully reverted!`, "success");
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                LGMS.toast(data.message || "Failed to revert commit", "error");
+            }
+        } catch (e) {
+            LGMS.hideLoading();
+            LGMS.toast(`Error reverting commit: ${e.message}`, "error");
+        }
+    }
+
+    // ==========================================
+    // 11. Tab 3 & 4: Unified & Full Commit Diff
+    // ==========================================
+    function renderUnifiedTab(container) {
+        const diffText = currentFileContentData ? currentFileContentData.diff : (currentCommitData ? currentCommitData.diff : '');
+        container.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted fs-xs fw-semibold text-uppercase">Unified Diff: ${escapeHtml(selectedFile || 'Selected File')}</span>
+            </div>
+            <div class="diff-unified-box">
+                ${formatUnifiedDiffHtml(diffText || "No diff found.")}
+            </div>
+        `;
+    }
+
+    function renderFullCommitDiff() {
+        const container = document.getElementById('active-tab-viewport');
+        if (!container || !currentCommitData) return;
+        container.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted fs-xs fw-semibold text-uppercase">Full Commit Patch (${currentCommitData.hash.substring(0, 7)})</span>
+            </div>
+            <div class="diff-unified-box">
+                ${formatUnifiedDiffHtml(currentCommitData.diff || "No diff found for this commit.")}
+            </div>
+        `;
+    }
+
+    function formatUnifiedDiffHtml(diffText) {
+        if (!diffText) return 'No diff content.';
+        const lines = diffText.split('\n');
+        return lines.map(line => {
+            const escaped = escapeHtml(line);
+            if (line.startsWith('+') && !line.startsWith('+++')) {
+                return `<span class="diff-line-add">${escaped}</span>`;
+            } else if (line.startsWith('-') && !line.startsWith('---')) {
+                return `<span class="diff-line-del">${escaped}</span>`;
+            } else if (line.startsWith('@@') || line.startsWith('diff --git')) {
+                return `<span class="diff-line-meta">${escaped}</span>`;
+            }
+            return `<span>${escaped}</span>`;
+        }).join('');
+    }
+
+    // ==========================================
+    // 12. Helper Utilities
+    // ==========================================
+    function syncInpageGutterScroll() {
+        const vp = document.getElementById('inpage-ide-viewport');
+        const gutter = document.getElementById('inpage-ide-gutter');
+        if (vp && gutter) gutter.scrollTop = vp.scrollTop;
+    }
+
+    function syncInpageTextareaGutter() {
+        const ta = document.getElementById('inpage-ide-textarea');
+        const gutter = document.getElementById('inpage-ide-gutter');
+        if (ta && gutter) gutter.scrollTop = ta.scrollTop;
+    }
+
+    function syncModalGutterScroll() {
+        const vp = document.getElementById('modal-ide-viewport');
+        const gutter = document.getElementById('modal-ide-gutter');
+        if (vp && gutter) gutter.scrollTop = vp.scrollTop;
+    }
+
+    function syncModalTextareaGutter() {
+        const ta = document.getElementById('modal-ide-textarea');
+        const gutter = document.getElementById('modal-ide-gutter');
+        if (ta && gutter) gutter.scrollTop = ta.scrollTop;
+    }
+
+    function getStatusBadge(code) {
+        const c = (code || 'M').toUpperCase();
+        if (c.startsWith('A')) return '<span class="badge bg-success-subtle text-success font-monospace py-0 px-1">ADD</span>';
+        if (c.startsWith('D')) return '<span class="badge bg-danger-subtle text-danger font-monospace py-0 px-1">DEL</span>';
+        if (c.startsWith('R')) return '<span class="badge bg-info-subtle text-info font-monospace py-0 px-1">REN</span>';
+        return '<span class="badge bg-warning-subtle text-warning font-monospace py-0 px-1">MOD</span>';
+    }
+
+    function getFileIcon(filePath) {
+        if (!filePath) return 'bi bi-file-earmark';
+        const ext = filePath.split('.').pop().toLowerCase();
+        switch (ext) {
+            case 'cs': return 'bi bi-file-earmark-code text-primary';
+            case 'cshtml': return 'bi bi-file-earmark-richtext text-danger';
+            case 'js': case 'ts': return 'bi bi-filetype-js text-warning';
+            case 'css': case 'scss': return 'bi bi-filetype-css text-info';
+            case 'html': return 'bi bi-filetype-html text-danger';
+            case 'json': return 'bi bi-filetype-json text-warning';
+            case 'md': return 'bi bi-filetype-md text-info';
+            case 'xml': case 'config': return 'bi bi-filetype-xml text-success';
+            default: return 'bi bi-file-earmark-text text-secondary';
+        }
+    }
+
+    function getFileLanguage(filePath) {
+        if (!filePath) return 'Plain Text';
+        const ext = filePath.split('.').pop().toLowerCase();
+        switch (ext) {
+            case 'cs': return 'C# (.NET)';
+            case 'cshtml': return 'Razor CSHTML';
+            case 'js': return 'JavaScript';
+            case 'ts': return 'TypeScript';
+            case 'css': return 'CSS';
+            case 'html': return 'HTML5';
+            case 'json': return 'JSON';
+            case 'md': return 'Markdown';
+            case 'xml': return 'XML / Config';
+            default: return 'Text';
         }
     }
 
     function escapeHtml(s) {
-        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        if (!s) return '';
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     async function branchFromCommit(hash) {
@@ -149,7 +1624,7 @@
                 LGMS.hideLoading();
                 if (data.success) {
                     LGMS.toast(`✓ Branch ${branchName} created`, "success");
-                    location.href = `/repository/@repo.Id/branches?path=${encodeURIComponent(repoPath)}`;
+                    location.href = `/repository/${repoId}/branches?path=${encodeURIComponent(repoPath)}`;
                 } else {
                     LGMS.toast(data.error || "Branch creation failed", "error");
                 }

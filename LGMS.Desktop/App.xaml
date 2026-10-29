@@ -20,6 +20,9 @@
             <common:ChangeStatusToBrushConverter x:Key="StatusToBrush" />
             <common:DiffLineToBrushConverter x:Key="DiffLineBg" IsForeground="False" />
             <common:DiffLineToBrushConverter x:Key="DiffLineFg" IsForeground="True" />
+            <common:DiffTypeToBgBrushConverter x:Key="DiffTypeBg" />
+            <common:DiffTypeToFgBrushConverter x:Key="DiffTypeFg" />
+            <common:InverseBooleanConverter x:Key="InverseBool" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

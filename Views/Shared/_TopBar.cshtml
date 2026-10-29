@@ -31,7 +31,25 @@
         }
     </div>
 
+    <!-- Git Actions: Clone Repo & Add Project To GIT -->
+    <div class="d-flex align-items-center gap-2 ms-auto ms-md-0">
+        <button class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" onclick="LGMS.openCloneModal();" title="Clone a remote Git repository">
+            <i class="bi bi-cloud-arrow-down"></i>
+            <span class="d-none d-md-inline">Clone Repo</span>
+        </button>
+        <button class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1" onclick="LGMS.openInitModal();" title="Initialize an existing folder as a Git repository">
+            <i class="bi bi-plus-circle"></i>
+            <span class="d-none d-md-inline">Add Project To GIT</span>
+        </button>
+        <button class="btn btn-sm btn-outline-info voice-topbar-btn d-inline-flex align-items-center gap-1" onclick="VoiceAssistant.toggleModal();" title="Open AI Voice Assistant HUD (Ctrl + Space)">
+            <i class="bi bi-mic-fill text-cyan"></i>
+            <span class="d-none d-sm-inline fw-semibold">Voice AI</span>
+            <span class="badge bg-info-subtle text-info border border-info-subtle d-none d-lg-inline fs-xs">Ctrl+Space</span>
+        </button>
+    </div>
+
     <!-- Action Tools -->
+    <div class="d-flex align-items-center gap-2">
         <a href="/docs" target="_blank" class="btn btn-sm btn-outline-info d-none d-md-inline-flex align-items-center gap-1" title="LGMS Showcase & Docs">
             <i class="bi bi-rocket-takeoff"></i>
             <span>Showcase &amp; Download</span>

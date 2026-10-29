@@ -37,3 +37,14 @@ public class DiffLineItem
     public string Text { get; set; } = string.Empty;
     public string LineType { get; set; } = "context"; // add, delete, header, context
 }
+
+public class SideBySideDiffRowItem
+{
+    public string LeftLineNumber { get; set; } = string.Empty;
+    public string LeftText { get; set; } = string.Empty;
+    public string LeftType { get; set; } = "Normal"; // "Del", "Hunk", "Normal", "Empty"
+
+    public string RightLineNumber { get; set; } = string.Empty;
+    public string RightText { get; set; } = string.Empty;
+    public string RightType { get; set; } = "Normal"; // "Add", "Hunk", "Normal", "Empty"
+}

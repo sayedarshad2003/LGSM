@@ -17,6 +17,7 @@ public interface IGitService
     Task<GitResult> FetchAsync(string repositoryPath);
     Task<GitResult> FetchAsync(string repositoryPath, string remote);
     Task<GitResult> CloneAsync(string repositoryUrl, string destinationPath, CancellationToken cancellationToken = default);
+    Task<GitResult> InitAndInitialCommitAsync(string repositoryPath, string commitMessage = "Initial Commit");
     Task<GitResult> GetBranchesAsync(string repositoryPath);
     Task<GitResult> CheckoutAsync(string repositoryPath, string branch);
     Task<GitResult> CreateBranchAsync(string repositoryPath, string branch);
@@ -33,4 +34,10 @@ public interface IGitService
     Task<GitResult> StashDropAsync(string repositoryPath, string stashRef);
     Task<GitResult> RunCommandAsync(string repositoryPath, string command);
     Task<GitStatus> ParseStatusAsync(string repositoryPath);
+    Task<List<CommitFileChange>> GetCommitFilesAsync(string repositoryPath, string hash);
+    Task<GitResult> GetCommitFileDiffAsync(string repositoryPath, string hash, string filePath);
+    Task<GitResult> RestoreFileFromCommitAsync(string repositoryPath, string hash, string filePath);
+    Task<GitResult> RestoreAllFromCommitAsync(string repositoryPath, string hash);
+    Task<GitResult> RevertCommitAsync(string repositoryPath, string hash);
+    Task<GitResult> GetFileContentAtCommitAsync(string repositoryPath, string hash, string filePath);
 }

@@ -181,3 +181,62 @@ public class DiffLineToBrushConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
 }
+
+public class DiffTypeToBgBrushConverter : IValueConverter
+{
+    private static readonly SolidColorBrush DelBg = new(Color.FromArgb(45, 239, 68, 68));
+    private static readonly SolidColorBrush AddBg = new(Color.FromArgb(45, 34, 197, 94));
+    private static readonly SolidColorBrush HunkBg = new(Color.FromArgb(40, 14, 165, 233));
+    private static readonly SolidColorBrush EmptyBg = new(Color.FromArgb(12, 255, 255, 255));
+    private static readonly SolidColorBrush TransBg = new(Colors.Transparent);
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var type = value as string ?? "Normal";
+        return type switch
+        {
+            "Del" => DelBg,
+            "Add" => AddBg,
+            "Hunk" => HunkBg,
+            "Empty" => EmptyBg,
+            _ => TransBg
+        };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class DiffTypeToFgBrushConverter : IValueConverter
+{
+    private static readonly SolidColorBrush DelFg = new(Color.FromRgb(248, 113, 113));
+    private static readonly SolidColorBrush AddFg = new(Color.FromRgb(74, 222, 128));
+    private static readonly SolidColorBrush HunkFg = new(Color.FromRgb(56, 189, 248));
+    private static readonly SolidColorBrush NormalFg = new(Color.FromRgb(241, 245, 249));
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        var type = value as string ?? "Normal";
+        return type switch
+        {
+            "Del" => DelFg,
+            "Add" => AddFg,
+            "Hunk" => HunkFg,
+            _ => NormalFg
+        };
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotImplementedException();
+}
+
+public class InverseBooleanConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return value is bool b ? !b : false;
+    }
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        return value is bool b ? !b : false;
+    }
+}

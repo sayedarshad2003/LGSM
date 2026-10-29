@@ -1,0 +1,51 @@
+<Window x:Class="LGMS.Desktop.CloneRepoDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Clone Remote Repository — LGMS"
+        Icon="app.ico"
+        Height="360" Width="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource BgDarkestBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        FontFamily="Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Clone Remote Repository" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+            <TextBlock Text="Clone any Git repository from GitHub, GitLab, or remote URL into your selected folder." FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- Fields -->
+        <StackPanel Grid.Row="1">
+            <!-- Step 1: Destination Folder -->
+            <TextBlock Text="Destination Folder (Selected):" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6" />
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Grid.Column="0" x:Name="DestFolderInput" IsReadOnly="True" Margin="0,0,8,0" Background="{DynamicResource BgInputBrush}" Foreground="{DynamicResource TextPrimaryBrush}" Padding="8,6" />
+                <Button Grid.Column="1" Content="Change..." Style="{DynamicResource SecondaryButton}" Click="OnChangeFolderClicked" Padding="12,6" />
+            </Grid>
+
+            <!-- Step 2: Remote Repository URL -->
+            <TextBlock Text="Remote Repository URL (HTTPS / SSH):" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6" />
+            <TextBox x:Name="RepoUrlInput" Margin="0,0,0,12" Background="{DynamicResource BgInputBrush}" Foreground="{DynamicResource TextPrimaryBrush}" Padding="8,6" />
+            
+            <TextBlock x:Name="ErrorMessageText" Foreground="#f87171" FontSize="11" Visibility="Collapsed" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Cancel" Style="{DynamicResource SecondaryButton}" IsCancel="True" Margin="0,0,10,0" Padding="16,8" />
+            <Button Content="Clone Repository" Style="{DynamicResource PrimaryButton}" IsDefault="True" Click="OnCloneClicked" Padding="20,8" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -61,6 +61,29 @@ public class MainViewModel : ObservableObject
     private GitCommit? _selectedCommit;
     private string _commitDiffText = string.Empty;
 
+    // Commit Pages, Side-by-Side Diff, and IDE State
+    private ObservableCollection<CommitFileChange> _commitFiles = new();
+    private CommitFileChange? _selectedCommitFile;
+    private int _commitInspectorTabIndex = 0; // 0 = Side-by-Side, 1 = Edit IDE, 2 = Unified Diff, 3 = Full Commit
+    private ObservableCollection<SideBySideDiffRowItem> _sideBySideDiffRows = new();
+    private string _selectedCommitFileDiff = string.Empty;
+    private string _selectedCommitFileContent = string.Empty;
+    private string _ideLineNumbersText = "1";
+    private bool _isIdeEditMode = false;
+    private string _ideContent = string.Empty;
+    private string _ideStatsText = "0 lines  |  0 chars  |  Text  |  UTF-8";
+
+    // IDE Ctrl+F Text Search & Replace State
+    private bool _isIdeSearchVisible = false;
+    private string _ideSearchQuery = string.Empty;
+    private string _ideReplaceQuery = string.Empty;
+    private string _ideSearchCounterText = "0 of 0";
+    private bool _ideMatchCase = false;
+    private List<int> _ideMatchIndices = new();
+    private int _ideCurrentMatchPos = -1;
+
+    public event Action<int, int>? RequestIdeTextSelection;
+
     private ObservableCollection<GitBranch> _branches = new();
     private ObservableCollection<GitStash> _stashes = new();
     private ObservableCollection<GitRemote> _remotes = new();
@@ -117,6 +140,8 @@ public class MainViewModel : ObservableObject
 
         // Init Commands
         BrowseFolderCommand = new AsyncRelayCommand(BrowseFolderAsync);
+        CloneRepoCommand = new AsyncRelayCommand(CloneRepoAsync);
+        AddProjectToGitCommand = new AsyncRelayCommand(AddProjectToGitAsync);
         ScanWorkspaceCommand = new AsyncRelayCommand(ScanWorkspaceAsync);
         SelectRepositoryCommand = new AsyncRelayCommand(p => SelectRepositoryAsync(p as Repository));
         RefreshCommand = new AsyncRelayCommand(RefreshActiveRepoAsync);
@@ -169,6 +194,21 @@ public class MainViewModel : ObservableObject
         SetupGitCredentialsCommand = new AsyncRelayCommand(SetupGitCredentialsAsync);
         OpenUrlCommand = new RelayCommand(p => OpenUrl(p as string));
         CopyCommand = new RelayCommand(p => CopyToClipboard(p as string));
+        OpenVoiceAssistantCommand = new RelayCommand(OpenVoiceAssistant);
+
+        // History & Commit Section Commands
+        SelectCommitFileCommand = new AsyncRelayCommand(p => SelectCommitFileAsync(p as CommitFileChange));
+        DownloadCommitFileCommand = new AsyncRelayCommand(p => DownloadCommitFileAsync(p as CommitFileChange));
+        RestoreCommitFileCommand = new AsyncRelayCommand(p => RestoreCommitFileAsync(p as CommitFileChange));
+        SaveIdeUpdatedContentCommand = new AsyncRelayCommand(SaveIdeUpdatedContentAsync);
+        ToggleIdeEditModeCommand = new RelayCommand(ToggleIdeEditMode);
+        ToggleIdeSearchCommand = new RelayCommand(ToggleIdeSearch);
+        IdeFindNextCommand = new RelayCommand(FindNext);
+        IdeFindPreviousCommand = new RelayCommand(FindPrevious);
+        IdeReplaceCurrentCommand = new RelayCommand(ReplaceCurrent);
+        IdeReplaceAllCommand = new RelayCommand(ReplaceAll);
+        RestoreAllFromSelectedCommitCommand = new AsyncRelayCommand(RestoreAllFromSelectedCommitAsync);
+        RevertSelectedCommitCommand = new AsyncRelayCommand(RevertSelectedCommitAsync);
 
         _ = InitializeAsync();
     }
@@ -433,6 +473,112 @@ public class MainViewModel : ObservableObject
         set => SetProperty(ref _commitDiffText, value);
     }
 
+    public ObservableCollection<CommitFileChange> CommitFiles => _commitFiles;
+
+    public CommitFileChange? SelectedCommitFile
+    {
+        get => _selectedCommitFile;
+        set
+        {
+            if (SetProperty(ref _selectedCommitFile, value))
+            {
+                _ = LoadSelectedCommitFileDetailsAsync();
+            }
+        }
+    }
+
+    public int CommitInspectorTabIndex
+    {
+        get => _commitInspectorTabIndex;
+        set => SetProperty(ref _commitInspectorTabIndex, value);
+    }
+
+    public ObservableCollection<SideBySideDiffRowItem> SideBySideDiffRows => _sideBySideDiffRows;
+
+    public string SelectedCommitFileDiff
+    {
+        get => _selectedCommitFileDiff;
+        set => SetProperty(ref _selectedCommitFileDiff, value);
+    }
+
+    public string SelectedCommitFileContent
+    {
+        get => _selectedCommitFileContent;
+        set => SetProperty(ref _selectedCommitFileContent, value);
+    }
+
+    public string IdeLineNumbersText
+    {
+        get => _ideLineNumbersText;
+        set => SetProperty(ref _ideLineNumbersText, value);
+    }
+
+    public bool IsIdeEditMode
+    {
+        get => _isIdeEditMode;
+        set => SetProperty(ref _isIdeEditMode, value);
+    }
+
+    public string IdeContent
+    {
+        get => _ideContent;
+        set
+        {
+            if (SetProperty(ref _ideContent, value))
+            {
+                UpdateIdeStats();
+            }
+        }
+    }
+
+    public string IdeStatsText
+    {
+        get => _ideStatsText;
+        set => SetProperty(ref _ideStatsText, value);
+    }
+
+    public bool IsIdeSearchVisible
+    {
+        get => _isIdeSearchVisible;
+        set => SetProperty(ref _isIdeSearchVisible, value);
+    }
+
+    public string IdeSearchQuery
+    {
+        get => _ideSearchQuery;
+        set
+        {
+            if (SetProperty(ref _ideSearchQuery, value))
+            {
+                RunIdeSearch();
+            }
+        }
+    }
+
+    public string IdeReplaceQuery
+    {
+        get => _ideReplaceQuery;
+        set => SetProperty(ref _ideReplaceQuery, value);
+    }
+
+    public string IdeSearchCounterText
+    {
+        get => _ideSearchCounterText;
+        set => SetProperty(ref _ideSearchCounterText, value);
+    }
+
+    public bool IdeMatchCase
+    {
+        get => _ideMatchCase;
+        set
+        {
+            if (SetProperty(ref _ideMatchCase, value))
+            {
+                RunIdeSearch();
+            }
+        }
+    }
+
     public string TerminalInput
     {
         get => _terminalInput;
@@ -539,6 +685,8 @@ public class MainViewModel : ObservableObject
 
     // Commands
     public ICommand BrowseFolderCommand { get; }
+    public ICommand CloneRepoCommand { get; }
+    public ICommand AddProjectToGitCommand { get; }
     public ICommand ScanWorkspaceCommand { get; }
     public ICommand SelectRepositoryCommand { get; }
     public ICommand RefreshCommand { get; }
@@ -582,6 +730,41 @@ public class MainViewModel : ObservableObject
     public ICommand SetupGitCredentialsCommand { get; }
     public ICommand OpenUrlCommand { get; }
     public ICommand CopyCommand { get; }
+    public ICommand OpenVoiceAssistantCommand { get; }
+
+    // History & Commit Section Commands
+    public ICommand SelectCommitFileCommand { get; }
+    public ICommand DownloadCommitFileCommand { get; }
+    public ICommand RestoreCommitFileCommand { get; }
+    public ICommand SaveIdeUpdatedContentCommand { get; }
+    public ICommand ToggleIdeEditModeCommand { get; }
+    public ICommand ToggleIdeSearchCommand { get; }
+    public ICommand IdeFindNextCommand { get; }
+    public ICommand IdeFindPreviousCommand { get; }
+    public ICommand IdeReplaceCurrentCommand { get; }
+    public ICommand IdeReplaceAllCommand { get; }
+    public ICommand RestoreAllFromSelectedCommitCommand { get; }
+    public ICommand RevertSelectedCommitCommand { get; }
+
+    private void OpenVoiceAssistant()
+    {
+        try
+        {
+            var voiceService = App.Current.Services?.GetService(typeof(VoiceAssistantService)) as VoiceAssistantService
+                               ?? new VoiceAssistantService(this, _gitService, _processService, _aiManager);
+
+            var voiceWindow = new VoiceAssistantWindow(this, voiceService)
+            {
+                Owner = Application.Current?.MainWindow
+            };
+            voiceWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Could not open Voice Assistant: {ex.Message}";
+            StatusSeverity = "error";
+        }
+    }
 
     private async Task InitializeAsync()
     {
@@ -706,6 +889,127 @@ public class MainViewModel : ObservableObject
         }
 
         return Task.CompletedTask;
+    }
+
+    public async Task CloneRepoAsync()
+    {
+        // Step 1: Ask for folder selection first
+        var folderDialog = new OpenFolderDialog
+        {
+            Title = "Select Destination Folder for Cloned Repository",
+            InitialDirectory = Directory.Exists(WorkspacePath) ? WorkspacePath : @"C:\"
+        };
+
+        if (folderDialog.ShowDialog() != true) return;
+        var selectedFolder = folderDialog.FolderName;
+
+        // Step 2: User can put their clone remote repo URL
+        var cloneDialog = new CloneRepoDialog(selectedFolder, Application.Current?.MainWindow);
+        if (cloneDialog.ShowDialog() != true) return;
+
+        var repoUrl = cloneDialog.RepositoryUrl;
+        var targetDest = cloneDialog.DestinationFolder;
+
+        try
+        {
+            IsBusy = true;
+            BusyMessage = $"Cloning repository from {repoUrl}...";
+
+            var result = await _gitService.CloneAsync(repoUrl, targetDest);
+            if (result.Success)
+            {
+                var finalPath = !string.IsNullOrWhiteSpace(result.Output) && Directory.Exists(result.Output)
+                    ? result.Output
+                    : targetDest;
+
+                SetNotification($"Cloned repository into '{finalPath}' successfully!", "success");
+
+                // If outside current workspace, update workspace path
+                if (!finalPath.StartsWith(WorkspacePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    var parent = Path.GetDirectoryName(finalPath);
+                    WorkspacePath = !string.IsNullOrWhiteSpace(parent) ? parent : finalPath;
+                    DefaultWorkspacePath = WorkspacePath;
+                    SaveSettings();
+                }
+
+                await ScanWorkspaceAsync();
+
+                var matching = AllRepositories.FirstOrDefault(r => r.Path.Equals(finalPath, StringComparison.OrdinalIgnoreCase));
+                if (matching != null)
+                {
+                    ActiveRepository = matching;
+                }
+            }
+            else
+            {
+                SetNotification($"Clone failed: {result.Error}", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetNotification($"Clone error: {ex.Message}", "error");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task AddProjectToGitAsync()
+    {
+        // Step 1: User selects folder
+        var folderDialog = new OpenFolderDialog
+        {
+            Title = "Select Project Folder to Add To GIT",
+            InitialDirectory = Directory.Exists(WorkspacePath) ? WorkspacePath : @"C:\"
+        };
+
+        if (folderDialog.ShowDialog() != true) return;
+        var selectedFolder = folderDialog.FolderName;
+
+        try
+        {
+            IsBusy = true;
+            var folderName = Path.GetFileName(selectedFolder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            BusyMessage = $"Initializing Git and creating Initial Commit in '{folderName}'...";
+
+            // Step 2: Automatic git init, add, and commit as "Initial Commit"
+            var result = await _gitService.InitAndInitialCommitAsync(selectedFolder, "Initial Commit");
+            if (result.Success)
+            {
+                SetNotification($"Project '{folderName}' added to Git with Initial Commit successfully!", "success");
+
+                // Update the system
+                if (!selectedFolder.StartsWith(WorkspacePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    var parent = Path.GetDirectoryName(selectedFolder);
+                    WorkspacePath = !string.IsNullOrWhiteSpace(parent) ? parent : selectedFolder;
+                    DefaultWorkspacePath = WorkspacePath;
+                    SaveSettings();
+                }
+
+                await ScanWorkspaceAsync();
+
+                var matching = AllRepositories.FirstOrDefault(r => r.Path.Equals(selectedFolder, StringComparison.OrdinalIgnoreCase));
+                if (matching != null)
+                {
+                    ActiveRepository = matching;
+                }
+            }
+            else
+            {
+                SetNotification($"Git initialization failed: {result.Error}", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetNotification($"Git initialization error: {ex.Message}", "error");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     public async Task ScanWorkspaceAsync()
@@ -1008,6 +1312,8 @@ public class MainViewModel : ObservableObject
         if (ActiveRepository == null || SelectedCommit == null)
         {
             CommitDiffText = string.Empty;
+            CommitFiles.Clear();
+            SelectedCommitFile = null;
             return;
         }
 
@@ -1015,10 +1321,413 @@ public class MainViewModel : ObservableObject
         {
             var res = await _processService.ExecuteAsync("git", new[] { "show", SelectedCommit.Hash, "--stat", "-p" }, ActiveRepository.Path);
             CommitDiffText = res.Success ? res.StandardOutput : res.StandardError;
+
+            var files = await _gitService.GetCommitFilesAsync(ActiveRepository.Path, SelectedCommit.Hash);
+            CommitFiles.Clear();
+            foreach (var f in files)
+            {
+                CommitFiles.Add(f);
+            }
+
+            SelectedCommitFile = CommitFiles.FirstOrDefault();
         }
         catch (Exception ex)
         {
             CommitDiffText = $"Error loading commit details: {ex.Message}";
+        }
+    }
+
+    public async Task SelectCommitFileAsync(CommitFileChange? file)
+    {
+        if (file == null) return;
+        SelectedCommitFile = file;
+        await LoadSelectedCommitFileDetailsAsync();
+    }
+
+    private async Task LoadSelectedCommitFileDetailsAsync()
+    {
+        if (ActiveRepository == null || SelectedCommit == null || SelectedCommitFile == null)
+        {
+            SelectedCommitFileDiff = string.Empty;
+            SelectedCommitFileContent = string.Empty;
+            IdeContent = string.Empty;
+            SideBySideDiffRows.Clear();
+            return;
+        }
+
+        try
+        {
+            var diffRes = await _gitService.GetCommitFileDiffAsync(ActiveRepository.Path, SelectedCommit.Hash, SelectedCommitFile.Path);
+            SelectedCommitFileDiff = diffRes.Success ? (diffRes.Output ?? string.Empty) : string.Empty;
+            ParseSideBySideDiff(SelectedCommitFileDiff);
+
+            var contentRes = await _gitService.GetFileContentAtCommitAsync(ActiveRepository.Path, SelectedCommit.Hash, SelectedCommitFile.Path);
+            SelectedCommitFileContent = contentRes.Success ? (contentRes.Output ?? string.Empty) : string.Empty;
+            IdeContent = SelectedCommitFileContent;
+            UpdateIdeStats();
+        }
+        catch (Exception ex)
+        {
+            SelectedCommitFileDiff = $"Error: {ex.Message}";
+        }
+    }
+
+    public void ParseSideBySideDiff(string diffText)
+    {
+        SideBySideDiffRows.Clear();
+        if (string.IsNullOrWhiteSpace(diffText)) return;
+
+        var lines = diffText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        int leftLine = 0;
+        int rightLine = 0;
+        var pendingDeletions = new List<(int num, string text)>();
+        var pendingAdditions = new List<(int num, string text)>();
+
+        void FlushPairs()
+        {
+            int maxLen = Math.Max(pendingDeletions.Count, pendingAdditions.Count);
+            for (int i = 0; i < maxLen; i++)
+            {
+                var del = i < pendingDeletions.Count ? pendingDeletions[i] : (num: 0, text: string.Empty);
+                var add = i < pendingAdditions.Count ? pendingAdditions[i] : (num: 0, text: string.Empty);
+
+                SideBySideDiffRows.Add(new SideBySideDiffRowItem
+                {
+                    LeftLineNumber = del.num > 0 ? del.num.ToString() : string.Empty,
+                    LeftText = del.num > 0 ? del.text : string.Empty,
+                    LeftType = del.num > 0 ? "Del" : "Empty",
+
+                    RightLineNumber = add.num > 0 ? add.num.ToString() : string.Empty,
+                    RightText = add.num > 0 ? add.text : string.Empty,
+                    RightType = add.num > 0 ? "Add" : "Empty"
+                });
+            }
+            pendingDeletions.Clear();
+            pendingAdditions.Clear();
+        }
+
+        foreach (var line in lines)
+        {
+            if (line.StartsWith("diff --git") || line.StartsWith("index ") || line.StartsWith("---") || line.StartsWith("+++"))
+                continue;
+
+            if (line.StartsWith("@@"))
+            {
+                FlushPairs();
+                var match = System.Text.RegularExpressions.Regex.Match(line, @"@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s+@@");
+                if (match.Success)
+                {
+                    int.TryParse(match.Groups[1].Value, out leftLine);
+                    int.TryParse(match.Groups[2].Value, out rightLine);
+                    leftLine--;
+                    rightLine--;
+                }
+                SideBySideDiffRows.Add(new SideBySideDiffRowItem
+                {
+                    LeftLineNumber = "@@",
+                    LeftText = line,
+                    LeftType = "Hunk",
+                    RightLineNumber = "@@",
+                    RightText = line,
+                    RightType = "Hunk"
+                });
+                continue;
+            }
+
+            if (line.StartsWith("-"))
+            {
+                leftLine++;
+                pendingDeletions.Add((leftLine, line.Length > 1 ? line.Substring(1) : string.Empty));
+            }
+            else if (line.StartsWith("+"))
+            {
+                rightLine++;
+                pendingAdditions.Add((rightLine, line.Length > 1 ? line.Substring(1) : string.Empty));
+            }
+            else
+            {
+                FlushPairs();
+                leftLine++;
+                rightLine++;
+                var text = line.StartsWith(" ") && line.Length > 1 ? line.Substring(1) : (line.StartsWith(" ") ? string.Empty : line);
+                SideBySideDiffRows.Add(new SideBySideDiffRowItem
+                {
+                    LeftLineNumber = leftLine.ToString(),
+                    LeftText = text,
+                    LeftType = "Normal",
+                    RightLineNumber = rightLine.ToString(),
+                    RightText = text,
+                    RightType = "Normal"
+                });
+            }
+        }
+        FlushPairs();
+    }
+
+    private void UpdateIdeStats()
+    {
+        var content = _ideContent ?? string.Empty;
+        var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        var sb = new System.Text.StringBuilder();
+        for (int i = 1; i <= lines.Length; i++)
+        {
+            sb.AppendLine(i.ToString());
+        }
+        IdeLineNumbersText = sb.ToString();
+
+        var charCount = content.Length;
+        var ext = System.IO.Path.GetExtension(SelectedCommitFile?.Path ?? string.Empty).ToLowerInvariant();
+        var lang = ext switch
+        {
+            ".cs" => "C# (.NET)",
+            ".xaml" => "XAML",
+            ".cshtml" => "Razor CSHTML",
+            ".html" => "HTML5",
+            ".js" => "JavaScript",
+            ".ts" => "TypeScript",
+            ".css" => "CSS",
+            ".json" => "JSON",
+            ".md" => "Markdown",
+            ".xml" or ".config" => "XML / Config",
+            _ => "Plain Text"
+        };
+        IdeStatsText = $"{lines.Length} lines  |  {charCount} chars  |  {lang}  |  UTF-8";
+    }
+
+    public void ToggleIdeEditMode()
+    {
+        IsIdeEditMode = !IsIdeEditMode;
+        SetNotification(IsIdeEditMode ? "IDE Edit Mode Enabled. You can modify and save updates to disk." : "Switched to View Mode.", "info");
+    }
+
+    public void ToggleIdeSearch()
+    {
+        IsIdeSearchVisible = !IsIdeSearchVisible;
+        if (IsIdeSearchVisible)
+        {
+            RunIdeSearch();
+        }
+    }
+
+    public void RunIdeSearch()
+    {
+        _ideMatchIndices.Clear();
+        _ideCurrentMatchPos = -1;
+
+        if (string.IsNullOrEmpty(IdeSearchQuery) || string.IsNullOrEmpty(IdeContent))
+        {
+            IdeSearchCounterText = "0 of 0";
+            return;
+        }
+
+        var comp = IdeMatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        int startIndex = 0;
+        while ((startIndex = IdeContent.IndexOf(IdeSearchQuery, startIndex, comp)) != -1)
+        {
+            _ideMatchIndices.Add(startIndex);
+            startIndex += Math.Max(1, IdeSearchQuery.Length);
+        }
+
+        if (_ideMatchIndices.Count > 0)
+        {
+            _ideCurrentMatchPos = 0;
+            IdeSearchCounterText = $"1 of {_ideMatchIndices.Count}";
+            SelectCurrentMatch();
+        }
+        else
+        {
+            IdeSearchCounterText = "0 of 0";
+        }
+    }
+
+    public void FindNext()
+    {
+        if (_ideMatchIndices.Count == 0) return;
+        _ideCurrentMatchPos = (_ideCurrentMatchPos + 1) % _ideMatchIndices.Count;
+        IdeSearchCounterText = $"{_ideCurrentMatchPos + 1} of {_ideMatchIndices.Count}";
+        SelectCurrentMatch();
+    }
+
+    public void FindPrevious()
+    {
+        if (_ideMatchIndices.Count == 0) return;
+        _ideCurrentMatchPos = (_ideCurrentMatchPos - 1 + _ideMatchIndices.Count) % _ideMatchIndices.Count;
+        IdeSearchCounterText = $"{_ideCurrentMatchPos + 1} of {_ideMatchIndices.Count}";
+        SelectCurrentMatch();
+    }
+
+    private void SelectCurrentMatch()
+    {
+        if (_ideCurrentMatchPos >= 0 && _ideCurrentMatchPos < _ideMatchIndices.Count)
+        {
+            int index = _ideMatchIndices[_ideCurrentMatchPos];
+            RequestIdeTextSelection?.Invoke(index, IdeSearchQuery.Length);
+        }
+    }
+
+    public void ReplaceCurrent()
+    {
+        if (!IsIdeEditMode || _ideCurrentMatchPos < 0 || _ideCurrentMatchPos >= _ideMatchIndices.Count) return;
+        int index = _ideMatchIndices[_ideCurrentMatchPos];
+        var text = IdeContent;
+        IdeContent = text.Substring(0, index) + (IdeReplaceQuery ?? string.Empty) + text.Substring(index + IdeSearchQuery.Length);
+        RunIdeSearch();
+    }
+
+    public void ReplaceAll()
+    {
+        if (!IsIdeEditMode || string.IsNullOrEmpty(IdeSearchQuery)) return;
+        var pattern = System.Text.RegularExpressions.Regex.Escape(IdeSearchQuery);
+        var regex = new System.Text.RegularExpressions.Regex(pattern, IdeMatchCase ? System.Text.RegularExpressions.RegexOptions.None : System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        IdeContent = regex.Replace(IdeContent, IdeReplaceQuery ?? string.Empty);
+        RunIdeSearch();
+        SetNotification("All matches replaced in editor.", "info");
+    }
+
+    public async Task DownloadCommitFileAsync(CommitFileChange? file = null)
+    {
+        var targetFile = file ?? SelectedCommitFile;
+        if (ActiveRepository == null || SelectedCommit == null || targetFile == null)
+        {
+            SetNotification("No file selected to download.", "warning");
+            return;
+        }
+
+        var saveDlg = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = targetFile.FileName,
+            Title = $"Save '{targetFile.FileName}' from commit {SelectedCommit.ShortHash}"
+        };
+
+        if (saveDlg.ShowDialog() == true)
+        {
+            var contentRes = await _gitService.GetFileContentAtCommitAsync(ActiveRepository.Path, SelectedCommit.Hash, targetFile.Path);
+            if (contentRes.Success)
+            {
+                await System.IO.File.WriteAllTextAsync(saveDlg.FileName, contentRes.Output ?? string.Empty, System.Text.Encoding.UTF8);
+                SetNotification($"File '{targetFile.FileName}' saved to {saveDlg.FileName} successfully!", "success");
+            }
+            else
+            {
+                SetNotification($"Failed to read file from commit: {contentRes.Error}", "error");
+            }
+        }
+    }
+
+    public async Task RestoreCommitFileAsync(CommitFileChange? file = null)
+    {
+        var targetFile = file ?? SelectedCommitFile;
+        if (ActiveRepository == null || SelectedCommit == null || targetFile == null)
+        {
+            SetNotification("No file selected to restore.", "warning");
+            return;
+        }
+
+        var res = System.Windows.MessageBox.Show(
+            $"Are you sure you want to restore '{targetFile.Path}' from commit {SelectedCommit.ShortHash} into your working directory?\n\nThis will restore this page into your workspace.",
+            "Confirm Restore Page",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (res == System.Windows.MessageBoxResult.Yes)
+        {
+            var gitRes = await _gitService.RestoreFileFromCommitAsync(ActiveRepository.Path, SelectedCommit.Hash, targetFile.Path);
+            if (gitRes.Success)
+            {
+                SetNotification($"Page '{targetFile.Path}' restored from commit {SelectedCommit.ShortHash}!", "success");
+                await LoadSelectedCommitFileDetailsAsync();
+                await LoadActiveRepoDetailsAsync();
+            }
+            else
+            {
+                SetNotification($"Restore failed: {gitRes.Error}", "error");
+            }
+        }
+    }
+
+    public async Task SaveIdeUpdatedContentAsync()
+    {
+        if (ActiveRepository == null || SelectedCommitFile == null)
+        {
+            SetNotification("No active repository or file to save.", "warning");
+            return;
+        }
+
+        try
+        {
+            var fullRepo = System.IO.Path.GetFullPath(ActiveRepository.Path);
+            var fullFile = System.IO.Path.GetFullPath(System.IO.Path.Combine(ActiveRepository.Path, SelectedCommitFile.Path));
+
+            if (!fullFile.StartsWith(fullRepo, StringComparison.OrdinalIgnoreCase))
+            {
+                SetNotification("Invalid path outside repository.", "error");
+                return;
+            }
+
+            var dir = System.IO.Path.GetDirectoryName(fullFile);
+            if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
+            {
+                System.IO.Directory.CreateDirectory(dir);
+            }
+
+            await System.IO.File.WriteAllTextAsync(fullFile, IdeContent ?? string.Empty, System.Text.Encoding.UTF8);
+            SetNotification($"Page '{SelectedCommitFile.Path}' updated successfully on disk!", "success");
+
+            await LoadSelectedCommitFileDetailsAsync();
+            await LoadActiveRepoDetailsAsync();
+        }
+        catch (Exception ex)
+        {
+            SetNotification($"Error saving file: {ex.Message}", "error");
+        }
+    }
+
+    public async Task RestoreAllFromSelectedCommitAsync()
+    {
+        if (ActiveRepository == null || SelectedCommit == null) return;
+        var confirm = System.Windows.MessageBox.Show(
+            $"Are you sure you want to restore ALL files from commit {SelectedCommit.ShortHash} into your working directory?",
+            "Restore All Files",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (confirm == System.Windows.MessageBoxResult.Yes)
+        {
+            var res = await _gitService.RestoreAllFromCommitAsync(ActiveRepository.Path, SelectedCommit.Hash);
+            if (res.Success)
+            {
+                SetNotification($"All files restored from commit {SelectedCommit.ShortHash}!", "success");
+                await LoadActiveRepoDetailsAsync();
+                await LoadSelectedCommitFileDetailsAsync();
+            }
+            else
+            {
+                SetNotification($"Failed to restore all: {res.Error}", "error");
+            }
+        }
+    }
+
+    public async Task RevertSelectedCommitAsync()
+    {
+        if (ActiveRepository == null || SelectedCommit == null) return;
+        var confirm = System.Windows.MessageBox.Show(
+            $"Are you sure you want to revert commit {SelectedCommit.ShortHash}?",
+            "Revert Commit",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (confirm == System.Windows.MessageBoxResult.Yes)
+        {
+            var res = await _gitService.RevertCommitAsync(ActiveRepository.Path, SelectedCommit.Hash);
+            if (res.Success)
+            {
+                SetNotification($"Commit {SelectedCommit.ShortHash} reverted successfully!", "success");
+                await LoadActiveRepoDetailsAsync();
+            }
+            else
+            {
+                SetNotification($"Revert failed: {res.Error}", "error");
+            }
         }
     }
 

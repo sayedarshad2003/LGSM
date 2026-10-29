@@ -14,6 +14,8 @@ namespace LGMS.Desktop;
 public partial class App : Application
 {
     private IServiceProvider? _serviceProvider;
+    public IServiceProvider? Services => _serviceProvider;
+    public static new App Current => (App)Application.Current;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -65,7 +67,11 @@ public partial class App : Application
         services.AddSingleton<ProcessRunner>();
         services.AddSingleton<GitHubCliService>();
 
-        // 5. Presentation
+        // 5. Voice Assistant
+        services.AddSingleton<VoiceAssistantService>();
+        services.AddTransient<VoiceAssistantWindow>();
+
+        // 6. Presentation
         services.AddSingleton<MainViewModel>();
         services.AddTransient<MainWindow>();
     }

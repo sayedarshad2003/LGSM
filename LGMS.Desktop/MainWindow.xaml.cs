@@ -14,6 +14,49 @@ public partial class MainWindow : Window
         InitializeComponent();
         ViewModel = viewModel;
         DataContext = viewModel;
+
+        PreviewKeyDown += MainWindow_PreviewKeyDown;
+
+        ViewModel.RequestIdeTextSelection += (start, length) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var textBox = FindName("IdeCodeTextBox") as TextBox;
+                if (textBox != null && start >= 0 && start + length <= textBox.Text.Length)
+                {
+                    textBox.Focus();
+                    textBox.Select(start, length);
+                    var lineIdx = textBox.GetLineIndexFromCharacterIndex(start);
+                    if (lineIdx >= 0)
+                    {
+                        textBox.ScrollToLine(lineIdx);
+                    }
+                }
+            });
+        };
+    }
+
+    private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        {
+            e.Handled = true;
+            ViewModel.CommitInspectorTabIndex = 1; // Switch to IDE view
+            ViewModel.IsIdeSearchVisible = true;
+            Dispatcher.InvokeAsync(() =>
+            {
+                var searchBox = FindName("IdeSearchTextBox") as TextBox;
+                searchBox?.Focus();
+                searchBox?.SelectAll();
+            }, System.Windows.Threading.DispatcherPriority.Input);
+        }
+        else if (e.Key == Key.Escape && ViewModel.IsIdeSearchVisible)
+        {
+            e.Handled = true;
+            ViewModel.IsIdeSearchVisible = false;
+            var codeBox = FindName("IdeCodeTextBox") as TextBox;
+            codeBox?.Focus();
+        }
     }
 
     private void OnTabSelected(object sender, RoutedEventArgs e)

@@ -264,12 +264,33 @@ public class GitService : IGitService
             return GitResult.Fail("Repository URL cannot be empty.");
         }
 
-        if (Directory.Exists(destinationPath) && Directory.EnumerateFileSystemEntries(destinationPath).Any())
+        var trimmedUrl = repositoryUrl.Trim();
+        var targetDest = destinationPath.Trim();
+
+        // If target directory exists and is not empty, check if we can append repository name
+        if (Directory.Exists(targetDest) && Directory.EnumerateFileSystemEntries(targetDest).Any())
         {
-            return GitResult.Fail("The clone destination directory must be empty.");
+            var cleanUrl = trimmedUrl.TrimEnd('/');
+            var repoName = Path.GetFileNameWithoutExtension(cleanUrl);
+            if (!string.IsNullOrWhiteSpace(repoName))
+            {
+                var combined = Path.Combine(targetDest, repoName);
+                if (!Directory.Exists(combined) || !Directory.EnumerateFileSystemEntries(combined).Any())
+                {
+                    targetDest = combined;
+                }
+                else
+                {
+                    return GitResult.Fail($"The clone destination directory '{combined}' already exists and is not empty.");
+                }
+            }
+            else
+            {
+                return GitResult.Fail("The clone destination directory must be empty.");
+            }
         }
 
-        var parent = Path.GetDirectoryName(Path.GetFullPath(destinationPath));
+        var parent = Path.GetDirectoryName(Path.GetFullPath(targetDest));
         if (!string.IsNullOrWhiteSpace(parent) && !Directory.Exists(parent))
         {
             Directory.CreateDirectory(parent);
@@ -277,12 +298,59 @@ public class GitService : IGitService
 
         var result = await _processService.ExecuteAsync(
             "git",
-            new[] { "clone", "--", repositoryUrl.Trim(), destinationPath },
+            new[] { "clone", "--", trimmedUrl, targetDest },
             workingDirectory: parent ?? Environment.CurrentDirectory,
             cancellationToken: cancellationToken,
             timeout: TimeSpan.FromMinutes(20));
 
-        return MapResult(result);
+        var mapped = MapResult(result);
+        if (mapped.Success && string.IsNullOrWhiteSpace(mapped.Output))
+        {
+            mapped.Output = targetDest;
+        }
+        return mapped;
+    }
+
+    public async Task<GitResult> InitAndInitialCommitAsync(string repositoryPath, string commitMessage = "Initial Commit")
+    {
+        if (string.IsNullOrWhiteSpace(repositoryPath))
+        {
+            return GitResult.Fail("Repository path cannot be empty.");
+        }
+
+        var fullPath = Path.GetFullPath(repositoryPath);
+        if (!Directory.Exists(fullPath))
+        {
+            Directory.CreateDirectory(fullPath);
+        }
+
+        // 1. git init
+        var initResult = await _processService.ExecuteAsync("git", new[] { "init" }, fullPath);
+        if (!initResult.Success)
+        {
+            return MapResult(initResult);
+        }
+
+        // 2. git add -A
+        var addResult = await _processService.ExecuteAsync("git", new[] { "add", "-A" }, fullPath);
+        if (!addResult.Success)
+        {
+            return MapResult(addResult);
+        }
+
+        // 3. Ensure commit author identity is available so git commit doesn't fail if global config is missing
+        var configUserCheck = await _processService.ExecuteAsync("git", new[] { "config", "user.name" }, fullPath);
+        var commitArgs = new List<string>();
+        if (!configUserCheck.Success || string.IsNullOrWhiteSpace(configUserCheck.StandardOutput))
+        {
+            commitArgs.AddRange(new[] { "-c", "user.name=LGMS User", "-c", "user.email=lgms@local.dev" });
+        }
+
+        var msg = string.IsNullOrWhiteSpace(commitMessage) ? "Initial Commit" : commitMessage.Trim();
+        commitArgs.AddRange(new[] { "commit", "--allow-empty", "-m", msg });
+
+        var commitResult = await _processService.ExecuteAsync("git", commitArgs, fullPath);
+        return MapResult(commitResult);
     }
 
     public async Task<GitResult> GetBranchesAsync(string repositoryPath)
@@ -399,5 +467,125 @@ public class GitService : IGitService
         {
             throw new ArgumentException("Invalid Git argument.");
         }
+    }
+
+    public async Task<List<CommitFileChange>> GetCommitFilesAsync(string repositoryPath, string hash)
+    {
+        var files = new List<CommitFileChange>();
+        if (string.IsNullOrWhiteSpace(repositoryPath) || string.IsNullOrWhiteSpace(hash))
+        {
+            return files;
+        }
+
+        var statusResult = await _processService.ExecuteAsync("git", new[] { "show", "--name-status", "--format=", hash.Trim() }, repositoryPath);
+        if (!statusResult.Success || string.IsNullOrWhiteSpace(statusResult.StandardOutput))
+        {
+            return files;
+        }
+
+        var lines = statusResult.StandardOutput.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        var map = new Dictionary<string, CommitFileChange>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var line in lines)
+        {
+            var parts = line.Split('\t', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 2)
+            {
+                var statusCode = parts[0].Trim();
+                var filePath = parts.Length >= 3 ? parts[2].Trim() : parts[1].Trim();
+                var status = statusCode.StartsWith("A") ? ChangeStatus.Added :
+                             statusCode.StartsWith("D") ? ChangeStatus.Deleted :
+                             statusCode.StartsWith("R") ? ChangeStatus.Renamed : ChangeStatus.Modified;
+
+                var item = new CommitFileChange
+                {
+                    Path = filePath,
+                    StatusCode = statusCode,
+                    Status = status
+                };
+                map[filePath] = item;
+                files.Add(item);
+            }
+        }
+
+        var numstatResult = await _processService.ExecuteAsync("git", new[] { "show", "--numstat", "--format=", hash.Trim() }, repositoryPath);
+        if (numstatResult.Success && !string.IsNullOrWhiteSpace(numstatResult.StandardOutput))
+        {
+            var numLines = numstatResult.StandardOutput.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var nLine in numLines)
+            {
+                var parts = nLine.Split('\t', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 3)
+                {
+                    int.TryParse(parts[0], out var add);
+                    int.TryParse(parts[1], out var del);
+                    var filePath = parts[2].Trim();
+                    if (map.TryGetValue(filePath, out var item))
+                    {
+                        item.Additions = add;
+                        item.Deletions = del;
+                    }
+                }
+            }
+        }
+
+        return files;
+    }
+
+    public async Task<GitResult> GetCommitFileDiffAsync(string repositoryPath, string hash, string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryPath) || string.IsNullOrWhiteSpace(hash) || string.IsNullOrWhiteSpace(filePath))
+        {
+            return GitResult.Fail("Repository path, hash, and file path are required.");
+        }
+
+        var result = await _processService.ExecuteAsync("git", new[] { "show", "--patch", hash.Trim(), "--", filePath.Trim() }, repositoryPath);
+        return MapResult(result);
+    }
+
+    public async Task<GitResult> RestoreFileFromCommitAsync(string repositoryPath, string hash, string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryPath) || string.IsNullOrWhiteSpace(hash) || string.IsNullOrWhiteSpace(filePath))
+        {
+            return GitResult.Fail("Repository path, hash, and file path are required.");
+        }
+
+        var result = await _processService.ExecuteAsync("git", new[] { "checkout", hash.Trim(), "--", filePath.Trim() }, repositoryPath);
+        return MapResult(result);
+    }
+
+    public async Task<GitResult> RestoreAllFromCommitAsync(string repositoryPath, string hash)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryPath) || string.IsNullOrWhiteSpace(hash))
+        {
+            return GitResult.Fail("Repository path and hash are required.");
+        }
+
+        var result = await _processService.ExecuteAsync("git", new[] { "checkout", hash.Trim(), "--", "." }, repositoryPath);
+        return MapResult(result);
+    }
+
+    public async Task<GitResult> RevertCommitAsync(string repositoryPath, string hash)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryPath) || string.IsNullOrWhiteSpace(hash))
+        {
+            return GitResult.Fail("Repository path and hash are required.");
+        }
+
+        var result = await _processService.ExecuteAsync("git", new[] { "revert", "--no-edit", hash.Trim() }, repositoryPath);
+        return MapResult(result);
+    }
+
+    public async Task<GitResult> GetFileContentAtCommitAsync(string repositoryPath, string hash, string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryPath) || string.IsNullOrWhiteSpace(hash) || string.IsNullOrWhiteSpace(filePath))
+        {
+            return GitResult.Fail("Repository path, hash, and file path are required.");
+        }
+
+        var gitPath = filePath.Trim().Replace('\\', '/');
+        var spec = $"{hash.Trim()}:{gitPath}";
+        var result = await _processService.ExecuteAsync("git", new[] { "show", spec }, repositoryPath);
+        return MapResult(result);
     }
 }
